@@ -2,6 +2,7 @@
 #define _HASH_H_
 
 #include <sys/types.h>
+#include <pthread.h>
 
 #define HASH_TABLE_SIZE 7
 #define HASH_KEY_LEN 	1	/* Byte */
@@ -14,6 +15,7 @@ struct hashnode {
 
 struct hash {
 	struct hashnode table[HASH_TABLE_SIZE];	/* sentinel */
+	pthread_mutex_t mutex[HASH_TABLE_SIZE];
 };
 
 void init_hash (struct hash * hash);

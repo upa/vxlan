@@ -14,6 +14,7 @@ init_hash (struct hash * hash)
 	for (n = 0; n < HASH_TABLE_SIZE; n++) {
 		hash->table[n].data = NULL;
 		hash->table[n].next = NULL;
+		pthread_mutex_init (&hash->mutex[n], NULL);
 	}
 	
 	return;
@@ -69,10 +70,13 @@ insert_hash (struct hash * hash, void * data, void * key)
 		return -1;
 
 	prev = &hash->table[hash_value];
+	pthread_mutex_lock (&hash->mutex[hash_value]);
 
 	for (ptr = prev->next; ptr != NULL; ptr = ptr->next) {
-		if (compare_key (key, ptr->key) == 0)
+		if (compare_key (key, ptr->key) == 0) {
+			pthread_mutex_unlock (&hash->mutex[hash_value]);
 			return -1;
+		}
 		prev = ptr;
 	}
 	
@@ -81,8 +85,9 @@ insert_hash (struct hash * hash, void * data, void * key)
 	node->next = NULL;
 	node->data = data;
 	memcpy (node->key, key, HASH_KEY_LEN);
-	
 	prev->next = node;
+
+	pthread_mutex_unlock (&hash->mutex[hash_value]);
 
 	return 1;
 }
@@ -98,17 +103,23 @@ delete_hash (struct hash * hash, void * key)
 
 	prev = &hash->table[hash_value];
 	
+	pthread_mutex_lock (&hash->mutex[hash_value]);	
+
 	for (ptr = prev->next; ptr != NULL; ptr = ptr->next) {
 		if (compare_key (key, ptr->key) == 0)
 			break;
 		prev = ptr;
 	}
 
-	if (ptr == NULL)
+	if (ptr == NULL) {
+		pthread_mutex_unlock (&hash->mutex[hash_value]);	
 		return -1;
-		
+	}		
+
 	prev->next = ptr->next;
 	free (ptr);
+
+	pthread_mutex_unlock (&hash->mutex[hash_value]);	
 
 	return 0;
 }
@@ -124,11 +135,17 @@ search_hash (struct hash * hash, void * key)
 		
 	ptr = &hash->table[hash_value];
 
+	pthread_mutex_lock (&hash->mutex[hash_value]);	
+
 	for (ptr = ptr->next; ptr != NULL; ptr = ptr->next) {
-		if (compare_key (key, ptr->key) == 0)
+		if (compare_key (key, ptr->key) == 0) {
+			pthread_mutex_unlock (&hash->mutex[hash_value]);	
 			return ptr->data;
+		}
 	}
 	     
+	pthread_mutex_unlock (&hash->mutex[hash_value]);	
+
 	return NULL;
 }
 
