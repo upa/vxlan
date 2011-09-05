@@ -21,11 +21,11 @@ struct hash {
 
 void init_hash (struct hash * hash);
 int insert_hash (struct hash * hash, void * data, void * key);
-int delete_hash (struct hash * hash, void * key);
+void * delete_hash (struct hash * hash, void * key);
 void * search_hash (struct hash * hash, void * key);
 
 
 /* debug */
 void print_all_hash (struct hash * hash);
 
-#endif _HASH_H_
+#endif /* _HASH_H_ */

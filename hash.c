@@ -92,14 +92,15 @@ insert_hash (struct hash * hash, void * data, void * key)
 	return 1;
 }
 
-int
+void *
 delete_hash (struct hash * hash, void * key)
 {
 	int hash_value;
+	void * data;
 	struct hashnode * ptr, * prev;
 
 	if ((hash_value = calculate_hash (key)) < 0) 
-		return -1;
+		return NULL;
 
 	prev = &hash->table[hash_value];
 	
@@ -113,15 +114,16 @@ delete_hash (struct hash * hash, void * key)
 
 	if (ptr == NULL) {
 		pthread_mutex_unlock (&hash->mutex[hash_value]);	
-		return -1;
+		return NULL;
 	}		
 
 	prev->next = ptr->next;
+	data = ptr->data;
 	free (ptr);
 
 	pthread_mutex_unlock (&hash->mutex[hash_value]);	
 
-	return 0;
+	return data;
 }
 
 void *
