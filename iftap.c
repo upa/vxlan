@@ -1,6 +1,6 @@
 /* iftap.c */
 
-#include "iftan.h"
+#include "iftap.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
