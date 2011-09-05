@@ -2,7 +2,7 @@
 
 CC = gcc -Wall -g
 PROGNAME = 
-MODULES = iftap.o hash.o
+MODULES = iftap.o hash.o fdb.o
 
 .PHONY: all
 all: $(PROGNAME)

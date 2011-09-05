@@ -5,7 +5,9 @@
 #include <netinet/in.h>
 #include "hash.h"
 
-struct vlxan {
+#define VXLAN_PORT 6000
+
+struct vxlan {
 	int port;
 	int tap_sock;
 	int udp_sock;
