@@ -14,6 +14,7 @@ struct fdb_entry {
 
 int fdb_add_entry (struct hash * fdb, u_int8_t * mac, struct in_addr vtep_addr);
 int fdb_del_entry (struct hash * fdb, u_int8_t * mac);
+struct fdb_entry * fdb_search_entry (struct hash * fdb, u_int8_t * mac);
 struct sockaddr * fdb_search_vtep_addr (struct hash * fdb, u_int8_t * mac);
 
 void fdb_decrease_ttl (int sig);

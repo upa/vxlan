@@ -24,6 +24,8 @@ fdb_add_entry (struct hash * fdb, u_int8_t * mac, struct in_addr vtep)
 	return insert_hash (fdb, entry, mac);
 }
 
+
+
 int
 fdb_del_entry (struct hash * fdb, u_int8_t * mac) 
 {
@@ -35,6 +37,13 @@ fdb_del_entry (struct hash * fdb, u_int8_t * mac)
 	} 
 
 	return -1;
+}
+
+
+struct fdb_entry *
+fdb_search_entry (struct hash * fdb, u_int8_t * mac)
+{
+	return search_hash (fdb, mac);
 }
 
 struct sockaddr *
