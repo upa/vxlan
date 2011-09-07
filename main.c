@@ -159,7 +159,6 @@ process_vxlan (void)
 
 		/* From Tap */
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
-			printf ("from tap!!\n");
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
 				warn ("read from tap failed");
 				continue;
