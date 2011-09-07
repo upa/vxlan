@@ -144,6 +144,7 @@ init_vxlan (void)
 			err (EXIT_FAILURE, "select failed");
 
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
+			printf ("tap_sock !!\n");
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
 				warn ("read from tap failed");
 				continue;
@@ -152,6 +153,7 @@ init_vxlan (void)
 		}
 
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
+			printf ("udp_sock !!\n");
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp unicast socket failed");
@@ -171,6 +173,7 @@ init_vxlan (void)
 		}
 
 		if (FD_ISSET (vxlan.mst_sock, &fds)) {
+			printf ("mcast_sock !!\n");
 			if ((len = recvfrom (vxlan.mst_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp multicast socket failed");
