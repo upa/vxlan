@@ -11,8 +11,6 @@
 #include <sys/ioctl.h>
 #include <linux/if_ether.h>
 
-#define INADDR_NO_MULTICAST 0xe0000000
-
 int
 udp_sock (int port)
 {
@@ -24,7 +22,7 @@ udp_sock (int port)
 	
 	saddr_in.sin_family = AF_INET;
 	saddr_in.sin_port = htons (port);
-	saddr_in.sin_addr.s_addr = INADDR_NO_MULTICAST;
+	saddr_in.sin_addr.s_addr = INADDR_ANY;
 
 	if (bind (sock, (struct sockaddr *)&saddr_in, sizeof (saddr_in)) < 0)
 		err (EXIT_FAILURE, "can not bind udp socket");

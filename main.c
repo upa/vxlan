@@ -169,7 +169,6 @@ process_vxlan (void)
 
 		/* From Unicast UDP */ 
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
-			printf ("from udp!!\n");
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp unicast socket failed");
@@ -188,7 +187,6 @@ process_vxlan (void)
 
 		/* From Multicast */
 		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
-			printf ("from mcast!!\n");
 			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp multicast socket failed");
