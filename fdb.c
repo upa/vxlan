@@ -3,6 +3,7 @@
 #include <err.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <signal.h>
 
 int
@@ -88,6 +89,8 @@ fdb_decrease_ttl (int sig)
 		}
 		pthread_mutex_unlock (&fdb->mutex[n]);
 	}
+
+	alarm (FDB_DECREASE_TTL_INTERVAL);
 
 	return;
 }

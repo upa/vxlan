@@ -7,11 +7,14 @@
 #include <net/if.h>
 #include <sys/select.h>
 #include <arpa/inet.h>
+#include <signal.h>
 
 
 #include "common.h"
 #include "net.h"
+#include "fdb.h"
 #include "iftap.h"
+
 
 struct vxlan vxlan;
 
@@ -111,6 +114,9 @@ main (int argc, char * argv[])
 	tap_up (VXLAN_TUNNAME);
 	
 	init_hash (&vxlan.fdb);
+
+	if (signal (SIGALRM, fdb_decrease_ttl) == SIG_ERR) 
+		err (EXIT_FAILURE, "failed to set sigalrm");
 
 	if (d_flag > 0) {
 		if (daemon (0, 0) < 0)

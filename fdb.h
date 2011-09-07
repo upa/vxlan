@@ -11,6 +11,7 @@ struct fdb_entry {
 };
 
 #define FDB_CACHE_TTL 1200	/* sec */
+#define FDB_DECREASE_TTL_INTERVAL 1
 
 int fdb_add_entry (struct hash * fdb, u_int8_t * mac, struct in_addr vtep_addr);
 int fdb_del_entry (struct hash * fdb, u_int8_t * mac);
