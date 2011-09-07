@@ -1,8 +1,8 @@
 #ifndef _FDB_H_
 #define _FDB_H_
 
-#include "common.h"
 #include <netinet/in.h>
+#include "common.h"
 
 /* key of hash is mac address */
 struct fdb_entry {

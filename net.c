@@ -4,8 +4,11 @@
 
 #include <err.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <net/if.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #include <linux/if_ether.h>
 
 int
@@ -35,12 +38,12 @@ mcast_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_addr)
 	struct sockaddr_in saddr_in;
 	struct ip_mreq mreq;
 	
-	if ((sock = socket (AF_INET, SOCK_DGRAM, IPPRPTO_UDP)) < 0)
+	if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
 		err (EXIT_FAILURE, "can not create multicast socket");
 	
 	saddr_in.sin_family = AF_INET;
 	saddr_in.sin_port = htons (port);
-	saddr_in.sin_addr = INADDR_ANY;
+	saddr_in.sin_addr.s_addr = INADDR_ANY;
 	
 	memset (&mreq, 0, sizeof (mreq));
 	mreq.imr_interface = mcast_if_addr;
@@ -74,7 +77,7 @@ getifaddr (char * dev)
 	strncpy (ifr.ifr_name, dev, IFNAMSIZ - 1);
 
 	if (ioctl (fd, SIOCGIFADDR, &ifr) < 0)
-		errmsg ("ioctl");
+		err (EXIT_FAILURE, "getifaddr");
 
 	close (fd);
 
@@ -84,18 +87,18 @@ getifaddr (char * dev)
 }
 
 void
-process_ether_from_vxlan (struct ether_header * ether, struct in_addr * vtep_addr)
+process_fdb_etherflame_from_vxlan (struct ether_header * ether, struct in_addr * vtep_addr)
 {
 	struct fdb_entry * entry;
 	struct sockaddr_in * saddr_in;
 	
 	entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *)ether->ether_shost);
 	if (entry == NULL) 
-		fdb_add_entry (&hash.fdb, (u_int8_t *)ether->ether_shost, vtep_addr);
+		fdb_add_entry (&vxlan.fdb, (u_int8_t *)ether->ether_shost, *vtep_addr);
 	else {
 		saddr_in = (struct sockaddr_in *) &entry->vtep_addr;
-		if (saddr_in->sin_addr.s_addr != vtep_addr.s_addr) {
-			saddr_in->sin_addr = vtep_addr;
+		if (saddr_in->sin_addr.s_addr != vtep_addr->s_addr) {
+			saddr_in->sin_addr = *vtep_addr;
 		}
 		entry->ttl = FDB_CACHE_TTL;
 	}
@@ -106,7 +109,7 @@ process_ether_from_vxlan (struct ether_header * ether, struct in_addr * vtep_add
 void
 send_etherflame_from_vxlan_to_local (struct ether_header * ether, int len)
 {
-	if (sendto (vxlan.tap_sock, ether, len) < 0) {
+	if (send (vxlan.tap_sock, ether, len, 0) < 0) {
 		warn ("sendto packet to local network failed");
 	}
 
@@ -132,22 +135,22 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 
 	if ((entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
 		mhdr.msg_name = &vxlan.mcast_saddr;
-		mhdr.msg_len = sizeof (&cxlan.mcast_saddr);
+		mhdr.msg_namelen = sizeof (vxlan.mcast_saddr);
 		mhdr.msg_iov = iov;
 		mhdr.msg_iovlen = 2;
 		mhdr.msg_controllen = 0;
 
-		if (sendmsg (vxlan.mst_sock, mhdr, 0) < 0) 
+		if (sendmsg (vxlan.mst_sock, &mhdr, 0) < 0) 
 			warn ("sendmsg to Multicast failed");
 		
 	} else {
 		mhdr.msg_name = &entry->vtep_addr;
-		mhdr.msg_len = sizeof (entry->vtep_addr);
+		mhdr.msg_namelen = sizeof (entry->vtep_addr);
 		mhdr.msg_iov = iov;
 		mhdr.msg_iovlen = 2;
 		mhdr.msg_controllen = 0;
 
-		if (sendmsg (vxlan.udp_sock, mhdr, 0) < 0) 
+		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
 			warn ("sendmsg to unicast failed");
 		
 	}
