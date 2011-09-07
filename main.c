@@ -2,6 +2,7 @@
 #include <err.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <string.h>
 #include <net/if.h>
 #include <sys/select.h>
@@ -20,7 +21,7 @@ void
 usage (void)
 {
 	printf ("usage\n");
-	printf ("\t -v : VXLAN Network Identifier (Hex)\n");
+	printf ("\t -v : VXLAN Network Identifier (24bit Hex)\n");
 	printf ("\t -m : Multicast Address\n");
 	printf ("\t -i : Multicast Interface\n");
 	printf ("\t -d : Daemon Mode\n");
@@ -52,7 +53,14 @@ main (int argc, char * argv[])
 			}
 
 			vni32 = strtol (optarg, NULL, 16);
-			memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
+			if (vni32 == LONG_MAX) {
+				err (EXIT_FAILURE, "strtol overflow");
+			} 
+			
+			(vni32 == LONG_MAX) ? err (EXIT_FAILURE, "strtol overflow") :
+				(vni32 == LONG_MIN) ? err (EXIT_FAILURE, "strtol underflow") :
+				memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
+
 			break;
 
 		case 'm' :
@@ -60,7 +68,7 @@ main (int argc, char * argv[])
 				usage ();
 				return -1;
 			}
-			if (inet_pton (AF_INET, optarg, &vxlan.mcast_addr) < 0) 
+			if (inet_pton (AF_INET, optarg, &vxlan.mcast_addr) < 1) 
 				err (EXIT_FAILURE, "invalid Mcast Address %s", optarg);
 
 			saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
@@ -81,9 +89,11 @@ main (int argc, char * argv[])
 
 		case 'd' :
 			d_flag = 1;
+			break;
 
 		default :
-			err (EXIT_FAILURE, "unknwon option");
+			usage ();
+			return -1;
 		}
 	}
 
@@ -91,6 +101,7 @@ main (int argc, char * argv[])
 	vxlan.udp_sock = udp_sock (VXLAN_PORT);
 	vxlan.mst_sock = mcast_sock (VXLAN_PORT, getifaddr (mcast_if_name), vxlan.mcast_addr);
 
+	tap_up (VXLAN_TUNNAME);
 	
 	init_hash (&vxlan.fdb);
 

@@ -92,9 +92,9 @@ process_fdb_etherflame_from_vxlan (struct ether_header * ether, struct in_addr *
 	struct fdb_entry * entry;
 	struct sockaddr_in * saddr_in;
 	
-	entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *)ether->ether_shost);
-	if (entry == NULL) 
-		fdb_add_entry (&vxlan.fdb, (u_int8_t *)ether->ether_shost, *vtep_addr);
+	entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *) ether->ether_shost);
+	if (entry == NULL)
+		fdb_add_entry (&vxlan.fdb, (u_int8_t *) ether->ether_shost, *vtep_addr);
 	else {
 		saddr_in = (struct sockaddr_in *) &entry->vtep_addr;
 		if (saddr_in->sin_addr.s_addr != vtep_addr->s_addr) {
@@ -109,8 +109,8 @@ process_fdb_etherflame_from_vxlan (struct ether_header * ether, struct in_addr *
 void
 send_etherflame_from_vxlan_to_local (struct ether_header * ether, int len)
 {
-	if (send (vxlan.tap_sock, ether, len, 0) < 0) {
-		warn ("sendto packet to local network failed");
+	if (write (vxlan.tap_sock, ether, len) < 0) {
+		warn ("write etherflame to local network failed");
 	}
 
 	return;
