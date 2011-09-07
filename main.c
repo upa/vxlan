@@ -233,10 +233,12 @@ void
 debug_print_ether (struct ether_header * ether) 
 {
 	printf ("Mac\n");
-	printf ("DST : %u%u%u%u%u%u\n", ether->ether_dhost[0], ether->ether_dhost[1], 
+	printf ("DST : %02u:%02u:%02u:%02u:%02u:%02u\n",
+		ether->ether_dhost[0], ether->ether_dhost[1], 
 		ether->ether_dhost[2], ether->ether_dhost[3], ether->ether_dhost[4], 
 		ether->ether_dhost[5]);
-	printf ("SRC : %u%u%u%u%u%u\n", ether->ether_shost[0], ether->ether_shost[1], 
+	printf ("SRC : %02u:%02u:%02u:%02u:%02u:%02u\n",
+		ether->ether_shost[0], ether->ether_shost[1], 
 		ether->ether_shost[2], ether->ether_shost[3], ether->ether_shost[4],
 		ether->ether_shost[5]);
 	return;
