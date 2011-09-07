@@ -11,9 +11,11 @@ struct vxlan {
 	int port;
 	int tap_sock;
 	int udp_sock;
+	int mst_sock;
 	
 	u_int8_t vni[3];
-	struct in_addr maddr;
+	struct in_addr maddr;		/* vxlan Multicast Address */
+	struct sockaddr mcast_saddr;	/* vxlan Multicast Address in Sockaddr  */
 
 	struct hash fdb;
 };
@@ -30,7 +32,7 @@ struct vxlan_hdr {
 };
 
 #define VXLAN_VALIDFLAG 0x08;
-
+#define VXLAN_VNISIZE	3;
 
 
 
