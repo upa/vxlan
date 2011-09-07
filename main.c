@@ -150,7 +150,7 @@ init_vxlan (void)
 		if (select (max_sock + 1, &fds, NULL, NULL, NULL) < 0)
 			err (EXIT_FAILURE, "select failed");
 
-
+		/* From Tap */
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
 				warn ("read from tap failed");
@@ -159,6 +159,7 @@ init_vxlan (void)
 			send_etherflame_from_local_to_vxlan ((struct ether_header *)buf, len);
 		}
 
+		/* From Unicast UDP */ 
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
@@ -176,6 +177,7 @@ init_vxlan (void)
 							     len - sizeof (struct vxlan_hdr));
 		}
 
+		/* From Multicast */
 		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
 			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
@@ -183,8 +185,6 @@ init_vxlan (void)
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
-			printf ("mcast source %s\n", inet_ntoa (src_saddr_in->sin_addr));
-
 
 			vhdr = (struct vxlan_hdr *) buf;
 			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
