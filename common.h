@@ -11,7 +11,8 @@
 struct vxlan {
 	int tap_sock;
 	int udp_sock;
-	int mst_sock;
+	int mst_send_sock;
+	int mst_recv_sock;
 	
 	u_int8_t vni[3];
 	struct in_addr  mcast_addr;	/* vxlan Multicast Address */

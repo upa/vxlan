@@ -99,7 +99,11 @@ main (int argc, char * argv[])
 
 	vxlan.tap_sock = tap_alloc (VXLAN_TUNNAME);
 	vxlan.udp_sock = udp_sock (VXLAN_PORT);
-	vxlan.mst_sock = mcast_sock (VXLAN_MCAST_PORT, getifaddr (mcast_if_name), vxlan.mcast_addr);
+	vxlan.mst_send_sock = mcast_send_sock (VXLAN_MCAST_PORT, 
+					       getifaddr (mcast_if_name));
+	vxlan.mst_recv_sock = mcast_recv_sock (VXLAN_MCAST_PORT,
+					       getifaddr (mcast_if_name), 
+					       vxlan.mcast_addr);
 
 	tap_up (VXLAN_TUNNAME);
 	
@@ -132,13 +136,13 @@ init_vxlan (void)
 	memset (buf, 0, sizeof (buf));
 
 	max_sock = (vxlan.tap_sock > vxlan.udp_sock) ? vxlan.tap_sock : vxlan.udp_sock;
-	max_sock = (vxlan.mst_sock > max_sock) ? vxlan.mst_sock : max_sock;
+	max_sock = (vxlan.mst_recv_sock > max_sock) ? vxlan.mst_recv_sock : max_sock;
 
 	while (1) {
 		FD_ZERO (&fds);
 		FD_SET (vxlan.udp_sock, &fds);
-		FD_SET (vxlan.mst_sock, &fds);
 		FD_SET (vxlan.tap_sock, &fds);
+		FD_SET (vxlan.mst_recv_sock, &fds);
 		
 		if (select (max_sock + 1, &fds, NULL, NULL, NULL) < 0)
 			err (EXIT_FAILURE, "select failed");
@@ -150,7 +154,7 @@ init_vxlan (void)
 				warn ("read from tap failed");
 				continue;
 			}
-			send_etherflame_from_local_to_vxlan ((struct ether_header *) ether, len);
+			send_etherflame_from_local_to_vxlan (ether, len);
 		}
 
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
@@ -174,9 +178,9 @@ init_vxlan (void)
 							     len - sizeof (struct vxlan_hdr));
 		}
 
-		if (FD_ISSET (vxlan.mst_sock, &fds)) {
+		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
 			printf ("mcast_sock !!\n");
-			if ((len = recvfrom (vxlan.mst_sock, buf, sizeof (buf), 0, 
+			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp multicast socket failed");
 				continue;

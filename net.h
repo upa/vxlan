@@ -7,7 +7,8 @@
 #include <netinet/icmp6.h>
 
 int udp_sock (int port);
-int mcast_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_addr);
+int mcast_send_sock (int port, struct in_addr mcast_if_addr);
+int mcast_recv_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_addr);
 struct in_addr getifaddr (char * dev);
 
 

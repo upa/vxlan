@@ -32,7 +32,29 @@ udp_sock (int port)
 }
 
 int
-mcast_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_addr) 
+mcast_send_sock (int port, struct in_addr mcast_if_addr) 
+{
+	int sock;
+	struct sockaddr_in saddr_in;
+	
+	if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+		err (EXIT_FAILURE, "can not create multicast socket");
+	
+	saddr_in.sin_family = AF_INET;
+	saddr_in.sin_port = htons (port);
+	saddr_in.sin_addr.s_addr = INADDR_ANY;
+	
+	if (setsockopt (sock,
+			IPPROTO_IP,
+			IP_MULTICAST_IF,
+			(char *)&mcast_if_addr, sizeof (mcast_if_addr)) < 0)
+		err (EXIT_FAILURE, "mcast send socket creation failed");
+
+	return sock;
+}
+
+int
+mcast_recv_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_addr) 
 {
 	int sock;
 	struct sockaddr_in saddr_in;
@@ -54,12 +76,6 @@ mcast_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_addr)
 			IP_ADD_MEMBERSHIP, 
 			(char *)&mreq, sizeof (mreq)) < 0)
 		err (EXIT_FAILURE, "mcast recieve socket creation failed");
-	
-	if (setsockopt (sock,
-			IPPROTO_IP,
-			IP_MULTICAST_IF,
-			(char *)&mcast_if_addr, sizeof (mcast_if_addr)) < 0)
-		err (EXIT_FAILURE, "mcast send socket creation failed");
 
 	return sock;
 }
@@ -141,7 +157,7 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 		mhdr.msg_iovlen = 2;
 		mhdr.msg_controllen = 0;
 
-		if (sendmsg (vxlan.mst_sock, &mhdr, 0) < 0) 
+		if (sendmsg (vxlan.mst_send_sock, &mhdr, 0) < 0) 
 			warn ("sendmsg to Multicast failed");
 		
 	} else {
@@ -177,7 +193,7 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 	memcpy (buf + sizeof (struct vxlan_hdr), ether, len);
 
 	if ((entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
-		n = sendto (vxlan.mst_sock, buf, sizeof (struct vxlan_hdr) + len, 0,
+		n = sendto (vxlan.mst_send_sock, buf, sizeof (struct vxlan_hdr) + len, 0,
 			    (struct sockaddr *)&vxlan.mcast_saddr, sizeof (vxlan.mcast_saddr));
 		if (n < 0) warn ("sendto multicsat faield");
 
