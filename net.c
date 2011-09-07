@@ -67,6 +67,9 @@ mcast_recv_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_ad
 	saddr_in.sin_port = htons (port);
 	saddr_in.sin_addr.s_addr = INADDR_ANY;
 	
+	if (bind (sock, (struct sockaddr *)&saddr_in, sizeof (saddr_in)) < 0)
+		err (EXIT_FAILURE, "can not bind multicast socket");
+
 	memset (&mreq, 0, sizeof (mreq));
 	mreq.imr_interface = mcast_if_addr;
 	mreq.imr_multiaddr = mcast_addr;
