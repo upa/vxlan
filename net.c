@@ -135,7 +135,6 @@ send_etherflame_from_vxlan_to_local (struct ether_header * ether, int len)
 	return;
 }
 
-#if 0
 void
 send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 {
@@ -177,7 +176,8 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 	
 	return;
 }
-#endif
+
+#if 0
 
 void
 send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
@@ -210,3 +210,4 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 }
 
 
+#endif

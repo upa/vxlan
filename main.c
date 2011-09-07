@@ -152,7 +152,6 @@ init_vxlan (void)
 
 
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
-			printf ("tap_sock !!\n");
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
 				warn ("read from tap failed");
 				continue;
@@ -161,32 +160,23 @@ init_vxlan (void)
 		}
 
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
-			printf ("udp_sock !!\n");
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp unicast socket failed");
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
-			printf ("source %s\n", inet_ntoa (src_saddr_in->sin_addr));
 
 			vhdr = (struct vxlan_hdr *) buf;
-			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
-				continue;
-
-			debug_print_vhdr (vhdr);
+			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)	continue;
 
 			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
-			
-			debug_print_ether (ether);
-
 			send_etherflame_from_vxlan_to_local (ether, 
 							     len - sizeof (struct vxlan_hdr));
 		}
 
 		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
-			printf ("mcast_recv_sock !!\n");
 			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp multicast socket failed");
@@ -200,20 +190,13 @@ init_vxlan (void)
 			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
 				continue;
 
-			debug_print_vhdr (vhdr);
-
 			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
-			
-			debug_print_ether (ether);
-
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
-			
 			send_etherflame_from_vxlan_to_local (ether, 
 							     len - sizeof (struct vxlan_hdr));
 		}
 
 	}
-
 	return;
 }
 
