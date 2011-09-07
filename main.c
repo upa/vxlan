@@ -17,6 +17,9 @@ struct vxlan vxlan;
 
 void init_vxlan (void);
 
+void debug_print_vhdr (struct vxlan_hdr * vhdr);
+void debug_print_ether (struct ether_header * ether);
+
 void
 usage (void)
 {
@@ -171,28 +174,38 @@ init_vxlan (void)
 			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
 				continue;
 
+			debug_print_vhdr (vhdr);
+
 			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
 			
+			debug_print_ether (ether);
+
 			send_etherflame_from_vxlan_to_local (ether, 
 							     len - sizeof (struct vxlan_hdr));
 		}
 
 		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
-			printf ("mcast_sock !!\n");
+			printf ("mcast_recv_sock !!\n");
 			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp multicast socket failed");
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
-			printf ("source %s\n", inet_ntoa (src_saddr_in->sin_addr));
+			printf ("mcast source %s\n", inet_ntoa (src_saddr_in->sin_addr));
+
 
 			vhdr = (struct vxlan_hdr *) buf;
 			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
 				continue;
 
+			debug_print_vhdr (vhdr);
+
 			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
+			
+			debug_print_ether (ether);
+
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
 			
 			send_etherflame_from_vxlan_to_local (ether, 
@@ -203,3 +216,32 @@ init_vxlan (void)
 
 	return;
 }
+
+
+void 
+debug_print_vhdr (struct vxlan_hdr * vhdr)
+{
+	printf ("vxlan header\n");
+	printf ("Flag : %u\n", vhdr->vxlan_flags);
+	printf ("VNI  : %u%u%u\n", vhdr->vxlan_vni[0], vhdr->vxlan_vni[1], vhdr->vxlan_vni[2]);
+	printf ("\n");
+
+	return;
+}
+
+void
+debug_print_ether (struct ether_header * ether) 
+{
+	printf ("Mac\n");
+	printf ("DST : %u%u%u%u%u%u\n", ether->ether_dhost[0], ether->ether_dhost[1], 
+		ether->ether_dhost[2], ether->ether_dhost[3], ether->ether_dhost[4], 
+		ether->ether_dhost[5]);
+	printf ("SRC : %u%u%u%u%u%u\n", ether->ether_shost[0], ether->ether_shost[1], 
+		ether->ether_shost[2], ether->ether_shost[3], ether->ether_shost[4],
+		ether->ether_shost[5]);
+	return;
+}
+
+
+
+void debug_print_ether (struct ether_header * ether);
