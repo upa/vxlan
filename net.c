@@ -197,7 +197,7 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 
 	if ((entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
 		n = sendto (vxlan.mst_send_sock, buf, sizeof (struct vxlan_hdr) + len, 0,
-			    (struct sockaddr *)&vxlan.mcast_saddr, sizeof (vxlan.mcast_saddr));
+			    &vxlan.mcast_saddr, sizeof (vxlan.mcast_saddr));
 		if (n < 0) warn ("sendto multicsat faield");
 
 	} else {

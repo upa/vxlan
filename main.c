@@ -157,7 +157,7 @@ init_vxlan (void)
 				warn ("read from tap failed");
 				continue;
 			}
-			send_etherflame_from_local_to_vxlan (ether, len);
+			send_etherflame_from_local_to_vxlan ((struct ether_header *)buf, len);
 		}
 
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
