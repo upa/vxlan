@@ -74,7 +74,7 @@ main (int argc, char * argv[])
 			saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
 			saddr_in->sin_family = AF_INET;
 			saddr_in->sin_addr = vxlan.mcast_addr;
-			saddr_in->sin_port = htons (VXLAN_PORT);
+			saddr_in->sin_port = htons (VXLAN_MCAST_PORT);
 			
 			break;
 
@@ -99,7 +99,7 @@ main (int argc, char * argv[])
 
 	vxlan.tap_sock = tap_alloc (VXLAN_TUNNAME);
 	vxlan.udp_sock = udp_sock (VXLAN_PORT);
-	vxlan.mst_sock = mcast_sock (VXLAN_PORT, getifaddr (mcast_if_name), vxlan.mcast_addr);
+	vxlan.mst_sock = mcast_sock (VXLAN_MCAST_PORT, getifaddr (mcast_if_name), vxlan.mcast_addr);
 
 	tap_up (VXLAN_TUNNAME);
 	
@@ -143,6 +143,7 @@ init_vxlan (void)
 		if (select (max_sock + 1, &fds, NULL, NULL, NULL) < 0)
 			err (EXIT_FAILURE, "select failed");
 
+
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
 			printf ("tap_sock !!\n");
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
@@ -160,12 +161,13 @@ init_vxlan (void)
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
+			printf ("source %s\n", inet_ntoa (src_saddr_in->sin_addr));
 
 			vhdr = (struct vxlan_hdr *) buf;
 			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
 				continue;
 
-			ether = (struct ether_header *) (vhdr + 1);
+			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
 			
 			send_etherflame_from_vxlan_to_local (ether, 
@@ -180,18 +182,19 @@ init_vxlan (void)
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
+			printf ("source %s\n", inet_ntoa (src_saddr_in->sin_addr));
 
 			vhdr = (struct vxlan_hdr *) buf;
 			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
 				continue;
 
-			ether = (struct ether_header *) (vhdr + 1);
+			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
 			
 			send_etherflame_from_vxlan_to_local (ether, 
 							     len - sizeof (struct vxlan_hdr));
-			
 		}
+
 	}
 
 	return;

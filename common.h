@@ -6,9 +6,9 @@
 #include "hash.h"
 
 #define VXLAN_PORT 6000
+#define VXLAN_MCAST_PORT 6001
 
 struct vxlan {
-	int port;
 	int tap_sock;
 	int udp_sock;
 	int mst_sock;
