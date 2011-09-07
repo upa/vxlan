@@ -115,6 +115,7 @@ main (int argc, char * argv[])
 	return -1;
 }
 
+
 void
 init_vxlan (void)
 {
@@ -127,8 +128,6 @@ init_vxlan (void)
 	struct sockaddr 	src_saddr;
 	struct sockaddr_in 	* src_saddr_in;
 	socklen_t peer_addr_len;
-
-
 
 	memset (buf, 0, sizeof (buf));
 
@@ -159,8 +158,10 @@ init_vxlan (void)
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
+
 			vhdr = (struct vxlan_hdr *) buf;
-			/* vxlan headdr check (VNI) */
+			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
+				continue;
 
 			ether = (struct ether_header *) (vhdr + 1);
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
@@ -176,8 +177,10 @@ init_vxlan (void)
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
+
 			vhdr = (struct vxlan_hdr *) buf;
-			/* vxlan headdr check (VNI) */
+			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
+				continue;
 
 			ether = (struct ether_header *) (vhdr + 1);
 			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);

@@ -17,5 +17,10 @@ void send_etherflame_from_vxlan_to_local (struct ether_header * ether, int len);
 void send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len);
 
 
+#define CHECK_VNI(v1, v2) \
+	(v1[0] != v2[0]) ? -1 :		\
+	(v1[1] != v2[1]) ? -1 :		\
+	(v1[2] != v2[2]) ? -1 : 1	\
+
 
 #endif /* _NET_H_ */
