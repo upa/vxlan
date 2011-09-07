@@ -17,7 +17,7 @@ udp_sock (int port)
 	int sock;
 	struct sockaddr_in saddr_in;
 	
-	if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+	if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) < 0)
 		err (EXIT_FAILURE, "can not create udp socket");
 	
 	saddr_in.sin_family = AF_INET;
