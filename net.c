@@ -11,18 +11,20 @@
 #include <sys/ioctl.h>
 #include <linux/if_ether.h>
 
+#define INADDR_NO_MULTICAST 0xe0000000
+
 int
 udp_sock (int port)
 {
 	int sock;
 	struct sockaddr_in saddr_in;
 	
-	if ((sock = socket (AF_INET, SOCK_DGRAM, 0)) < 0)
+	if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
 		err (EXIT_FAILURE, "can not create udp socket");
 	
 	saddr_in.sin_family = AF_INET;
 	saddr_in.sin_port = htons (port);
-	saddr_in.sin_addr.s_addr = INADDR_ANY;
+	saddr_in.sin_addr.s_addr = INADDR_NO_MULTICAST;
 
 	if (bind (sock, (struct sockaddr *)&saddr_in, sizeof (saddr_in)) < 0)
 		err (EXIT_FAILURE, "can not bind udp socket");

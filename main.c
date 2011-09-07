@@ -18,7 +18,7 @@
 
 struct vxlan vxlan;
 
-void init_vxlan (void);
+void process_vxlan (void);
 
 void debug_print_vhdr (struct vxlan_hdr * vhdr);
 void debug_print_ether (struct ether_header * ether);
@@ -113,6 +113,7 @@ main (int argc, char * argv[])
 
 	tap_up (VXLAN_TUNNAME);
 	
+
 	init_hash (&vxlan.fdb);
 
 	if (signal (SIGALRM, fdb_decrease_ttl) == SIG_ERR) 
@@ -123,14 +124,14 @@ main (int argc, char * argv[])
 			err (EXIT_FAILURE, "failed to run as a daemon");
 	}
 
-	init_vxlan ();
+	process_vxlan ();
 
 	return -1;
 }
 
 
 void
-init_vxlan (void)
+process_vxlan (void)
 {
 	int max_sock, len;
 	char buf[VXLAN_PACKET_BUF_LEN];
@@ -158,6 +159,7 @@ init_vxlan (void)
 
 		/* From Tap */
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
+			printf ("from tap!!\n");
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
 				warn ("read from tap failed");
 				continue;
@@ -167,6 +169,7 @@ init_vxlan (void)
 
 		/* From Unicast UDP */ 
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
+			printf ("from udp!!\n");
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp unicast socket failed");
@@ -185,6 +188,7 @@ init_vxlan (void)
 
 		/* From Multicast */
 		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
+			printf ("from mcast!!\n");
 			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
 				warn ("read from udp multicast socket failed");
