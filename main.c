@@ -59,12 +59,12 @@ main (int argc, char * argv[])
 			}
 
 			vni32 = strtol (optarg, NULL, 16);
-			if (vni32 == LONG_MAX) {
+			if (vni32 == LONG_MAX) 
 				err (EXIT_FAILURE, "strtol overflow");
-			} 
 			
 			(vni32 == LONG_MAX) ? err (EXIT_FAILURE, "strtol overflow") :
-				(vni32 == LONG_MIN) ? err (EXIT_FAILURE, "strtol underflow") :
+				(vni32 == LONG_MIN) ? 
+				err (EXIT_FAILURE, "strtol underflow") :
 				memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
 
 			break;
@@ -74,6 +74,7 @@ main (int argc, char * argv[])
 				usage ();
 				return -1;
 			}
+
 			if (inet_pton (AF_INET, optarg, &vxlan.mcast_addr) < 1) 
 				err (EXIT_FAILURE, "invalid Mcast Address %s", optarg);
 

@@ -35,14 +35,9 @@ int
 mcast_send_sock (int port, struct in_addr mcast_if_addr) 
 {
 	int sock;
-	struct sockaddr_in saddr_in;
 	
 	if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
 		err (EXIT_FAILURE, "can not create multicast socket");
-	
-	saddr_in.sin_family = AF_INET;
-	saddr_in.sin_port = htons (port);
-	saddr_in.sin_addr.s_addr = INADDR_ANY;
 	
 	if (setsockopt (sock,
 			IPPROTO_IP,
@@ -139,9 +134,9 @@ void
 send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 {
 	struct vxlan_hdr vhdr;
+	struct fdb_entry * entry;
 	struct msghdr mhdr;
 	struct iovec iov[2];
-	struct fdb_entry * entry;
 	
 	memset (&vhdr, 0, sizeof (vhdr));
 	vhdr.vxlan_flags = VXLAN_VALIDFLAG;
@@ -160,7 +155,7 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 		mhdr.msg_controllen = 0;
 
 		if (sendmsg (vxlan.mst_send_sock, &mhdr, 0) < 0) 
-			warn ("sendmsg to Multicast failed");
+			warn ("sendmsg to multicast failed");
 		
 	} else {
 		mhdr.msg_name = &entry->vtep_addr;
@@ -178,38 +173,3 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 }
 
 
-
-#if 0
-
-void
-send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
-{
-	int n;
-	struct vxlan_hdr vhdr;
-	struct fdb_entry * entry;
-	
-	char buf[2048];
-
-	memset (&vhdr, 0, sizeof (vhdr));
-	vhdr.vxlan_flags = VXLAN_VALIDFLAG;
-	memcpy (vhdr.vxlan_vni, vxlan.vni, VXLAN_VNISIZE);
-
-	memcpy (buf, &vhdr, sizeof (struct vxlan_hdr));
-	memcpy (buf + sizeof (struct vxlan_hdr), ether, len);
-
-	if ((entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
-		n = sendto (vxlan.mst_send_sock, buf, sizeof (struct vxlan_hdr) + len, 0,
-			    &vxlan.mcast_saddr, sizeof (vxlan.mcast_saddr));
-		if (n < 0) warn ("sendto multicsat faield");
-
-	} else {
-		n = sendto (vxlan.udp_sock, buf, sizeof (struct vxlan_hdr) + len, 0,
-			    &entry->vtep_addr, sizeof (entry->vtep_addr));
-		if (n < 0) warn ("sendto unicast faield");
-	}
-	
-	return;
-}
-
-
-#endif
