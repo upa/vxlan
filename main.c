@@ -113,12 +113,8 @@ main (int argc, char * argv[])
 					       vxlan.mcast_addr);
 
 	tap_up (VXLAN_TUNNAME);
-	
-
 	init_hash (&vxlan.fdb);
-
-	if (signal (SIGALRM, fdb_decrease_ttl) == SIG_ERR) 
-		err (EXIT_FAILURE, "failed to set sigalrm");
+	fdb_decrease_ttl_init ();
 
 	if (d_flag > 0) {
 		if (daemon (0, 0) < 0)
@@ -205,6 +201,7 @@ process_vxlan (void)
 		}
 
 	}
+
 	return;
 }
 

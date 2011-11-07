@@ -14,6 +14,8 @@ struct vxlan {
 	int mst_send_sock;
 	int mst_recv_sock;
 	
+	pthread_t decrease_ttl_t;
+
 	u_int8_t vni[3];
 	struct in_addr  mcast_addr;	/* vxlan Multicast Address */
 	struct sockaddr mcast_saddr;	/* vxlan Multicast Address in Sockaddr  */

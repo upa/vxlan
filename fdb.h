@@ -18,8 +18,7 @@ int fdb_del_entry (struct hash * fdb, u_int8_t * mac);
 struct fdb_entry * fdb_search_entry (struct hash * fdb, u_int8_t * mac);
 struct sockaddr * fdb_search_vtep_addr (struct hash * fdb, u_int8_t * mac);
 
-void fdb_decrease_ttl (int sig);
-
-
+void fdb_decrease_ttl_init (void);
+void * fdb_decrease_ttl (void * param);
 
 #endif /* _FDB_H_ */

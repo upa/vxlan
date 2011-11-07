@@ -5,6 +5,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <pthread.h>
 
 int
 fdb_add_entry (struct hash * fdb, u_int8_t * mac, struct in_addr vtep)
@@ -58,17 +59,24 @@ fdb_search_vtep_addr (struct hash * fdb, u_int8_t * mac)
 
 
 void
-fdb_decrease_ttl (int sig)
+fdb_decrease_ttl_init (void)
+{
+	pthread_attr_t attr;
+	
+	pthread_attr_init (&attr);
+	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
+	pthread_create (&vxlan.decrease_ttl_t, &attr, fdb_decrease_ttl, NULL);
+
+	return;
+}
+
+void * 
+fdb_decrease_ttl (void * param)
 {
 	int n;
 	struct hash * fdb = &vxlan.fdb;
 	struct hashnode * ptr, * prev;
 	struct fdb_entry * entry;
-	
-	if (sig != SIGALRM) {
-		warn ("unexpected signal %d", sig);
-		return;
-	}
 
 	for (n = 0; n < HASH_TABLE_SIZE; n++) {
 		pthread_mutex_lock (&fdb->mutex[n]);
@@ -86,9 +94,9 @@ fdb_decrease_ttl (int sig)
 			
 		}
 		pthread_mutex_unlock (&fdb->mutex[n]);
+		sleep (FDB_DECREASE_TTL_INTERVAL);
 	}
 
-	alarm (FDB_DECREASE_TTL_INTERVAL);
-
-	return;
+	/* not reached */
+	return NULL;
 }
