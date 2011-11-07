@@ -1,6 +1,4 @@
 
-	Virtual eXtensible Local Area Network
-	
    simple vxlan implementation with tap interface.
 
 
@@ -27,7 +25,7 @@ ex.2)
                               | 172.16.2.1 |
 +------------+ +------------+ |    br102   |
 | 172.16.0.1 | | 172.16.1.1 | |~~~~~~~~~~~~|
-| vxlan.100  | | vlxna.101  | | vxlan.102  |
+| vxlan.100  | | vxlan.101  | | vxlan.102  |
 |^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^|
 |                  vxlan                   |
 +==========================================+---------------+
