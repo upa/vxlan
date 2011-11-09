@@ -50,7 +50,6 @@ main (int argc, char * argv[])
 	extern char * optarg;
 
 	char mcast_if_name[IFNAMSIZ];
-        char tunifname[IFNAMSIZ];
 	
 	memset (&vxlan, 0, sizeof (vxlan));
 
