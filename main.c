@@ -26,10 +26,11 @@ void debug_print_ether (struct ether_header * ether);
 void
 usage (void)
 {
-	printf ("usage\n");
+	printf ("Usage\n");
 	printf ("\t -v : VXLAN Network Identifier (24bit Hex)\n");
 	printf ("\t -m : Multicast Address\n");
 	printf ("\t -i : Multicast Interface\n");
+	printf ("\t -n : Sub-interface number\n");
 	printf ("\t -d : Daemon Mode\n");
 	printf ("\n");
 }
