@@ -41,6 +41,7 @@ main (int argc, char * argv[])
 	int ch;
 	int d_flag = 0;
         int sockopt;
+        int subn;
 	u_int32_t vni32;
 	struct sockaddr_in * saddr_in;
 
@@ -48,10 +49,11 @@ main (int argc, char * argv[])
 	extern char * optarg;
 
 	char mcast_if_name[IFNAMSIZ];
+        char tunifname[IFNAMSIZ];
 	
 	memset (&vxlan, 0, sizeof (vxlan));
 
-	while ((ch = getopt (argc, argv, "v:m:i:d")) != -1) {
+	while ((ch = getopt (argc, argv, "v:m:i:n:d")) != -1) {
 		switch (ch) {
 		case 'v' :
 			if (optarg == NULL) {
@@ -95,6 +97,15 @@ main (int argc, char * argv[])
 			
 			break;
 
+		case 'n' :
+			if ( optarg == NULL ) {
+				usage ();
+				return -1;
+			}
+			subn = atoi(optarg);
+			
+			break;
+
 		case 'd' :
 			d_flag = 1;
 			break;
@@ -104,8 +115,9 @@ main (int argc, char * argv[])
 			return -1;
 		}
 	}
+        (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
 
-	vxlan.tap_sock = tap_alloc (VXLAN_TUNNAME);
+	vxlan.tap_sock = tap_alloc (tunifname);
 	vxlan.udp_sock = udp_sock (VXLAN_PORT);
 	vxlan.mst_send_sock = mcast_send_sock (VXLAN_MCAST_PORT, 
 					       getifaddr (mcast_if_name));
