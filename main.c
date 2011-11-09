@@ -42,7 +42,7 @@ main (int argc, char * argv[])
 	int ch;
 	int d_flag = 0;
         int sockopt;
-        int subn;
+        int subn = 0;
 	u_int32_t vni32;
 	struct sockaddr_in * saddr_in;
 
