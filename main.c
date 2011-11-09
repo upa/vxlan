@@ -40,6 +40,7 @@ main (int argc, char * argv[])
 {
 	int ch;
 	int d_flag = 0;
+        int sockopt;
 	u_int32_t vni32;
 	struct sockaddr_in * saddr_in;
 
@@ -111,6 +112,12 @@ main (int argc, char * argv[])
 	vxlan.mst_recv_sock = mcast_recv_sock (VXLAN_MCAST_PORT,
 					       getifaddr (mcast_if_name), 
 					       vxlan.mcast_addr);
+
+        sockopt = 0;
+        if ( 0 != setsockopt(vxlan.mst_send_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
+                             (void*)&sockopt, sizeof(sockopt)) ) {
+            err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
+        }
 
 	tap_up (VXLAN_TUNNAME);
 	init_hash (&vxlan.fdb);
