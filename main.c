@@ -132,7 +132,7 @@ main (int argc, char * argv[])
             err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
         }
 
-	tap_up (VXLAN_TUNNAME);
+	tap_up (tunifname);
 	init_hash (&vxlan.fdb);
 	fdb_decrease_ttl_init ();
 
