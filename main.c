@@ -41,11 +41,8 @@ main (int argc, char * argv[])
 {
 	int ch;
 	int d_flag = 0;
-<<<<<<< HEAD
         int sockopt;
         int subn = 0;
-=======
->>>>>>> parent of 605fdbf... added a patch to disable IP_MULTICAST_LOOP.
 	u_int32_t vni32;
 	struct sockaddr_in * saddr_in;
 
@@ -119,9 +116,8 @@ main (int argc, char * argv[])
 			return -1;
 		}
 	}
-        (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
 
-	vxlan.tap_sock = tap_alloc (tunifname);
+	vxlan.tap_sock = tap_alloc (VXLAN_TUNNAME);
 	vxlan.udp_sock = udp_sock (VXLAN_PORT);
 	vxlan.mst_send_sock = mcast_send_sock (VXLAN_MCAST_PORT, 
 					       getifaddr (mcast_if_name));
@@ -129,17 +125,12 @@ main (int argc, char * argv[])
 					       getifaddr (mcast_if_name), 
 					       vxlan.mcast_addr);
 
-<<<<<<< HEAD
         sockopt = 0;
         if ( 0 != setsockopt(vxlan.mst_send_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
                              (void*)&sockopt, sizeof(sockopt)) ) {
             err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
         }
-
-	tap_up (tunifname);
-=======
 	tap_up (VXLAN_TUNNAME);
->>>>>>> parent of 605fdbf... added a patch to disable IP_MULTICAST_LOOP.
 	init_hash (&vxlan.fdb);
 	fdb_decrease_ttl_init ();
 
