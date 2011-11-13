@@ -24,7 +24,8 @@ struct vxlan {
 };
 
 extern struct vxlan vxlan;
-
+extern unsigned short uport;
+extern unsigned short mport;
 
 
 struct vxlan_hdr {

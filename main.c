@@ -17,6 +17,8 @@
 
 
 struct vxlan vxlan;
+unsigned short uport = 0;
+unsigned short mport = 0;
 
 void process_vxlan (void);
 
@@ -43,8 +45,6 @@ main (int argc, char * argv[])
 	int d_flag = 0;
         int sockopt;
         int subn = 0;
-        unsigned short uport;
-        unsigned short mport;
 	u_int32_t vni32;
 	struct sockaddr_in * saddr_in;
 
