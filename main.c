@@ -30,7 +30,7 @@ usage (void)
 	printf ("\t -v : VXLAN Network Identifier (24bit Hex)\n");
 	printf ("\t -m : Multicast Address\n");
 	printf ("\t -i : Multicast Interface\n");
-	printf ("\t -n : Sub-interface number\n");
+	printf ("\t -n : Sub-interface number (<4096)\n");
 	printf ("\t -d : Daemon Mode\n");
 	printf ("\n");
 }
@@ -43,6 +43,8 @@ main (int argc, char * argv[])
 	int d_flag = 0;
         int sockopt;
         int subn = 0;
+        unsigned short uport;
+        unsigned short mport;
 	u_int32_t vni32;
 	struct sockaddr_in * saddr_in;
 
@@ -50,6 +52,7 @@ main (int argc, char * argv[])
 	extern char * optarg;
 
 	char mcast_if_name[IFNAMSIZ];
+        char tunifname[IFNAMSIZ];
 	
 	memset (&vxlan, 0, sizeof (vxlan));
 
@@ -84,7 +87,7 @@ main (int argc, char * argv[])
 			saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
 			saddr_in->sin_family = AF_INET;
 			saddr_in->sin_addr = vxlan.mcast_addr;
-			saddr_in->sin_port = htons (VXLAN_MCAST_PORT);
+			/*saddr_in->sin_port = htons (mport);*/
 			
 			break;
 
@@ -115,13 +118,22 @@ main (int argc, char * argv[])
 			return -1;
 		}
 	}
+        if ( subn >= 4096 ) {
+            err (EXIT_FAILURE, "Invalid subinterface number %u", subn);
+        }
 
-	vxlan.tap_sock = tap_alloc (VXLAN_TUNNAME);
-	vxlan.udp_sock = udp_sock (VXLAN_PORT);
-	vxlan.mst_send_sock = mcast_send_sock (VXLAN_MCAST_PORT, 
+        (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
+        uport = VXLAN_PORT_BASE + subn;
+        mport = VXLAN_MCAST_PORT_BASE + subn;
+        saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
+        saddr_in->sin_port = htons(mport);
+
+	vxlan.tap_sock = tap_alloc (subn);
+	vxlan.udp_sock = udp_sock (uport);
+	vxlan.mst_send_sock = mcast_send_sock (mport,
 					       getifaddr (mcast_if_name));
-	vxlan.mst_recv_sock = mcast_recv_sock (VXLAN_MCAST_PORT,
-					       getifaddr (mcast_if_name), 
+	vxlan.mst_recv_sock = mcast_recv_sock (mport,
+					       getifaddr (mcast_if_name),
 					       vxlan.mcast_addr);
 
         sockopt = 0;
@@ -129,7 +141,7 @@ main (int argc, char * argv[])
                              (void*)&sockopt, sizeof(sockopt)) ) {
             err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
         }
-	tap_up (VXLAN_TUNNAME);
+	tap_up (subn);
 	init_hash (&vxlan.fdb);
 	fdb_decrease_ttl_init ();
 
