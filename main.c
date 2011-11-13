@@ -128,7 +128,7 @@ main (int argc, char * argv[])
         saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
         saddr_in->sin_port = htons(mport);
 
-	vxlan.tap_sock = tap_alloc (subn);
+	vxlan.tap_sock = tap_alloc (tunifname);
 	vxlan.udp_sock = udp_sock (uport);
 	vxlan.mst_send_sock = mcast_send_sock (mport,
 					       getifaddr (mcast_if_name));
