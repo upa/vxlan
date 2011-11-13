@@ -128,8 +128,8 @@ main (int argc, char * argv[])
         saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
         saddr_in->sin_port = htons(mport);
 
-	vxlan.tap_sock = tap_alloc (tunifname);
-	vxlan.udp_sock = udp_sock (uport);
+	vxlan.tap_sock = tap_alloc(tunifname);
+	vxlan.udp_sock = udp_sock(uport);
 	vxlan.mst_send_sock = mcast_send_sock (mport,
 					       getifaddr (mcast_if_name));
 	vxlan.mst_recv_sock = mcast_recv_sock (mport,
@@ -141,7 +141,7 @@ main (int argc, char * argv[])
                              (void*)&sockopt, sizeof(sockopt)) ) {
             err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
         }
-	tap_up (subn);
+	tap_up(tunifname);
 	init_hash (&vxlan.fdb);
 	fdb_decrease_ttl_init ();
 
