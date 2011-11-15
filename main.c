@@ -67,12 +67,16 @@ main (int argc, char * argv[])
 			vni32 = strtol (optarg, NULL, 16);
 			if (vni32 == LONG_MAX) 
 				err (EXIT_FAILURE, "strtol overflow");
-			
-			(vni32 == LONG_MAX) ? err (EXIT_FAILURE, "strtol overflow") :
-				(vni32 == LONG_MIN) ? 
-				err (EXIT_FAILURE, "strtol underflow") :
-				memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
 
+                        if ( vni32 == LONG_MAX ) {
+                            err (EXIT_FAILURE, "strtol overflow")
+                        } else {
+                            if ( vni32 == LONG_MIN ) {
+                                err (EXIT_FAILURE, "strtol underflow");
+                            } else {
+                                memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
+                            }
+                        }
 			break;
 
 		case 'm' :
