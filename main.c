@@ -69,7 +69,7 @@ main (int argc, char * argv[])
 				err (EXIT_FAILURE, "strtol overflow");
 
                         if ( vni32 == LONG_MAX ) {
-                            err (EXIT_FAILURE, "strtol overflow")
+                            err (EXIT_FAILURE, "strtol overflow");
                         } else {
                             if ( vni32 == LONG_MIN ) {
                                 err (EXIT_FAILURE, "strtol underflow");
