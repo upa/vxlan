@@ -145,6 +145,11 @@ main (int argc, char * argv[])
                              (void*)&sockopt, sizeof(sockopt)) ) {
             err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
         }
+        sockopt = 0;
+        if ( 0 != setsockopt(vxlan.mst_recv_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
+                             (void*)&sockopt, sizeof(sockopt)) ) {
+            err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
+        }
 	tap_up(tunifname);
 	init_hash (&vxlan.fdb);
 	fdb_decrease_ttl_init ();
