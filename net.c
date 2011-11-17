@@ -1,6 +1,7 @@
 #include "net.h"
 #include "common.h"
 #include "fdb.h"
+#include "error.h"
 
 #include <err.h>
 #include <stdlib.h>
@@ -124,7 +125,7 @@ void
 send_etherflame_from_vxlan_to_local (struct ether_header * ether, int len)
 {
 	if (write (vxlan.tap_sock, ether, len) < 0) {
-		warn ("write etherflame to local network failed");
+		error_warn("Write etherflame to local network failed");
 	}
 
 	return;
@@ -155,7 +156,7 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 		mhdr.msg_controllen = 0;
 
 		if (sendmsg (vxlan.mst_send_sock, &mhdr, 0) < 0) 
-			warn ("sendmsg to multicast failed");
+			error_warn("sendmsg to multicast failed");
 		
 	} else {
 		mhdr.msg_name = &entry->vtep_addr;
@@ -165,7 +166,7 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 		mhdr.msg_controllen = 0;
 
 		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
-			warn ("sendmsg to unicast failed");
+			error_warn("sendmsg to unicast failed");
 		
 	}
 	

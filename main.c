@@ -14,11 +14,13 @@
 #include "net.h"
 #include "fdb.h"
 #include "iftap.h"
+#include "error.h"
 
 
 struct vxlan vxlan;
 unsigned short uport = 0;
 unsigned short mport = 0;
+
 
 void process_vxlan (void);
 
@@ -125,6 +127,10 @@ main (int argc, char * argv[])
         if ( subn >= 4096 ) {
             err (EXIT_FAILURE, "Invalid subinterface number %u", subn);
         }
+
+        /* Enable syslog */
+        error_enable_syslog();
+        /*error_warn("test %d", 12345);*/
 
         (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
         uport = VXLAN_PORT_BASE + subn;
