@@ -130,7 +130,6 @@ main (int argc, char * argv[])
 
         /* Enable syslog */
         error_enable_syslog();
-        /*error_warn("test %d", 12345);*/
 
         (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
         uport = VXLAN_PORT_BASE + subn;
@@ -203,7 +202,7 @@ process_vxlan (void)
 		/* From Tap */
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
-				warn ("read from tap failed");
+				error_warn("read from tap failed");
 				continue;
 			}
 			send_etherflame_from_local_to_vxlan ((struct ether_header *)buf, len);
@@ -213,7 +212,7 @@ process_vxlan (void)
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
-				warn ("read from udp unicast socket failed");
+				error_warn("read from udp unicast socket failed");
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
@@ -231,7 +230,7 @@ process_vxlan (void)
 		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
 			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
-				warn ("read from udp multicast socket failed");
+				error_warn("read from udp multicast socket failed");
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
