@@ -6,14 +6,13 @@
 #include "hash.h"
 
 #define VXLAN_PORT_BASE 6000
-#define VXLAN_MCAST_PORT_BASE 16000
 
 struct vxlan {
 	int tap_sock;
 	int udp_sock;
-	int mst_send_sock;
-	int mst_recv_sock;
-	
+
+	unsigned short port;
+
 	pthread_t decrease_ttl_t;
 
 	u_int8_t vni[3];
@@ -24,8 +23,6 @@ struct vxlan {
 };
 
 extern struct vxlan vxlan;
-extern unsigned short uport;
-extern unsigned short mport;
 
 
 struct vxlan_hdr {

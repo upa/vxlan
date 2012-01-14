@@ -16,11 +16,8 @@
 #include "iftap.h"
 #include "error.h"
 
-
 struct vxlan vxlan;
-unsigned short uport = 0;
-unsigned short mport = 0;
-
+unsigned short port = 0;
 
 void process_vxlan (void);
 
@@ -53,7 +50,7 @@ main (int argc, char * argv[])
 	extern int opterr;	
 	extern char * optarg;
 
-	char mcast_if_name[IFNAMSIZ];
+	char vxlan_if_name[IFNAMSIZ];
         char tunifname[IFNAMSIZ];
 	
 	memset (&vxlan, 0, sizeof (vxlan));
@@ -71,12 +68,15 @@ main (int argc, char * argv[])
 				err (EXIT_FAILURE, "strtol overflow");
 
                         if ( vni32 == LONG_MAX ) {
-                            err (EXIT_FAILURE, "strtol overflow");
+				err (EXIT_FAILURE, "strtol overflow");
                         } else {
-                            if ( vni32 == LONG_MIN ) {
-                                err (EXIT_FAILURE, "strtol underflow");
-                            } else {
-                                memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
+				if ( vni32 == LONG_MIN ) {
+					err (EXIT_FAILURE, "strtol underflow");
+				} else {
+					u_int8_t * vp = &vni32;
+					vxlan.vni[0] = *(vp + 3);
+					vxlan.vni[1] = *(vp + 2);
+					vxlan.vni[2] = *(vp + 1);
                             }
                         }
 			break;
@@ -93,7 +93,6 @@ main (int argc, char * argv[])
 			saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
 			saddr_in->sin_family = AF_INET;
 			saddr_in->sin_addr = vxlan.mcast_addr;
-			/*saddr_in->sin_port = htons (mport);*/
 			
 			break;
 
@@ -102,7 +101,7 @@ main (int argc, char * argv[])
 				usage ();
 				return -1;
 			}
-			strcpy (mcast_if_name, optarg);
+			strcpy (vxlan_if_name, optarg);
 			
 			break;
 
@@ -132,31 +131,13 @@ main (int argc, char * argv[])
         error_enable_syslog();
 
         (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
-        uport = VXLAN_PORT_BASE + subn;
-        mport = VXLAN_MCAST_PORT_BASE + subn;
+        vxlan.port = VXLAN_PORT_BASE + subn;
         saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
-        saddr_in->sin_port = htons(mport);
+        saddr_in->sin_port = htons(vxlan.port);
 
 	vxlan.tap_sock = tap_alloc(tunifname);
-	vxlan.udp_sock = udp_sock(uport);
-	vxlan.mst_send_sock = mcast_send_sock (mport,
-					       getifaddr (mcast_if_name));
-	vxlan.mst_recv_sock = mcast_recv_sock (mport,
-					       getifaddr (mcast_if_name),
-					       vxlan.mcast_addr);
+	vxlan.udp_sock = mcast_sock (vxlan.port, getifaddr (vxlan_if_name), vxlan.mcast_addr);
 
-        sockopt = 0;
-        if ( 0 != setsockopt(vxlan.mst_send_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
-                             (void*)&sockopt, sizeof(sockopt)) ) {
-            err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
-        }
-#if 0
-        sockopt = 0;
-        if ( 0 != setsockopt(vxlan.mst_recv_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
-                             (void*)&sockopt, sizeof(sockopt)) ) {
-            err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
-        }
-#endif
 	tap_up(tunifname);
 	init_hash (&vxlan.fdb);
 	fdb_decrease_ttl_init ();
@@ -181,20 +162,16 @@ process_vxlan (void)
 
 	struct vxlan_hdr 	* vhdr;
 	struct ether_header 	* ether;
-	struct sockaddr 	src_saddr;
-	struct sockaddr_in 	* src_saddr_in;
 	socklen_t peer_addr_len;
 
 	memset (buf, 0, sizeof (buf));
 
 	max_sock = (vxlan.tap_sock > vxlan.udp_sock) ? vxlan.tap_sock : vxlan.udp_sock;
-	max_sock = (vxlan.mst_recv_sock > max_sock) ? vxlan.mst_recv_sock : max_sock;
 
 	while (1) {
 		FD_ZERO (&fds);
 		FD_SET (vxlan.udp_sock, &fds);
 		FD_SET (vxlan.tap_sock, &fds);
-		FD_SET (vxlan.mst_recv_sock, &fds);
 		
 		if (select (max_sock + 1, &fds, NULL, NULL, NULL) < 0)
 			err (EXIT_FAILURE, "select failed");
@@ -209,6 +186,59 @@ process_vxlan (void)
 		}
 
 		/* From Unicast UDP */ 
+		if (FD_ISSET (vxlan.udp_sock, &fds)) {
+			struct in_addr src_addr, dst_addr;
+			struct msghdr msg;
+			struct iovec iov[1];
+			char cbuf[512];
+			struct in_pktinfo * pktinfo;
+			struct cmsghdr * cmsg;
+			struct sockaddr_in sin;
+			
+			iov[0].iov_base = buf;
+			iov[0].iov_len = sizeof (buf);
+			
+			msg.msg_name = &sin;
+			msg.msg_namelen = sizeof (sin);
+			msg.msg_iov = iov;
+			msg.msg_iovlen = 1;
+			msg.msg_control = cbuf;
+			msg.msg_controllen = sizeof (cbuf);
+			
+			if (recvmsg (vxlan.udp_sock, &msg, 0) < 0) {
+				error_warn ("read from udp socket failed");
+				continue;
+			}
+			
+			pktinfo = NULL;
+			for (cmsg = CMSG_FIRSTHDR (&msg); 
+			     cmsg != NULL; cmsg = CMSG_NXTHDR (&msg, cmsg)) {
+				if (cmsg->cmsg_level == IPPROTO_IP &&
+				    cmsg->cmsg_type == IP_PKTINFO) {
+					pktinfo = (struct in_pktinfo *) CMSG_DATA (cmsg);
+					dst_addr = pktinfo->ipi_addr;
+					src_addr = sin.sin_addr;
+					break;
+				}
+			}
+
+			if (pktinfo == NULL) {
+				error_warn ("No pktinfo failed");
+				continue;
+			}
+			
+			vhdr = (struct vxlan_hdr *) buf;
+			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)	continue;
+
+			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
+			process_fdb_etherflame_from_vxlan (ether, &src_addr);
+			send_etherflame_from_vxlan_to_local (ether, 
+							     len - sizeof (struct vxlan_hdr));
+		}
+
+		
+
+#if 0
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
@@ -245,6 +275,7 @@ process_vxlan (void)
 							     len - sizeof (struct vxlan_hdr));
 		}
 
+#endif
 	}
 
 	return;

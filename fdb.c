@@ -17,7 +17,7 @@ fdb_add_entry (struct hash * fdb, u_int8_t * mac, struct in_addr vtep)
 	memset (entry, 0, sizeof (struct fdb_entry));
 	
 	saddr_in.sin_family = AF_INET;
-	saddr_in.sin_port = htons (uport);
+	saddr_in.sin_port = htons (vxlan.port);
 	saddr_in.sin_addr = vtep;
 
 	memcpy (&entry->vtep_addr, &saddr_in, sizeof (saddr_in));

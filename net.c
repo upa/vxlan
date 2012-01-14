@@ -13,7 +13,7 @@
 #include <linux/if_ether.h>
 
 int
-udp_sock (int port)
+udp_sock (int port, char * devname)
 {
 	int sock;
 	struct sockaddr_in saddr_in;
@@ -23,11 +23,10 @@ udp_sock (int port)
 	
 	saddr_in.sin_family = AF_INET;
 	saddr_in.sin_port = htons (port);
-	saddr_in.sin_addr.s_addr = INADDR_ANY;
+	saddr_in.sin_addr = getifaddr (devname);
 
 	if (bind (sock, (struct sockaddr *)&saddr_in, sizeof (saddr_in)) < 0)
 		err (EXIT_FAILURE, "can not bind udp socket");
-
 
 	return sock;
 }
@@ -79,6 +78,54 @@ mcast_recv_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_ad
 	return sock;
 }
 
+int
+mcast_sock (int port, struct in_addr mcast_if_addr, struct in_addr mcast_addr)
+{
+	int sock, on = 1, off = 0;
+	struct sockaddr_in saddr_in;
+	struct ip_mreq mreq;
+	
+	if ((sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP)) < 0)
+		err (EXIT_FAILURE, "can not create multicast socket");
+	
+	saddr_in.sin_family = AF_INET;
+	saddr_in.sin_port = htons (port);
+	saddr_in.sin_addr.s_addr = INADDR_ANY;
+	
+	if (bind (sock, (struct sockaddr *)&saddr_in, sizeof (saddr_in)) < 0)
+		err (EXIT_FAILURE, "can not bind multicast socket");
+
+	memset (&mreq, 0, sizeof (mreq));
+	mreq.imr_interface = mcast_if_addr;
+	mreq.imr_multiaddr = mcast_addr;
+	
+	if (setsockopt (sock,
+			IPPROTO_IP,
+			IP_ADD_MEMBERSHIP, 
+			(char *)&mreq, sizeof (mreq)) < 0)
+		err (EXIT_FAILURE, "%s : set IP_ADD_MEMBERSHIP failed", __func__);
+
+	if (setsockopt (sock,
+			IPPROTO_IP,
+			IP_MULTICAST_IF,
+			(char *)&mcast_if_addr, sizeof (mcast_if_addr)) < 0)
+		err (EXIT_FAILURE, " %s : set IP_MULTICAST_IF failed", __func__);
+
+	if (setsockopt(sock,
+		       IPPROTO_IP, 
+		       IP_MULTICAST_LOOP,
+		       (void*)&off, sizeof(off)) < 0) 
+		err (EXIT_FAILURE, "%s : failed to disable IP_MULTICAST_LOOP", __func__);
+
+	if (setsockopt (sock,
+			IPPROTO_IP, 
+			IP_PKTINFO,
+			&on, sizeof (on)) < 0)
+		err (EXIT_FAILURE, "%s : failed to set IP_PKTINFO", __func__);
+
+	return sock;
+}
+
 struct in_addr
 getifaddr (char * dev)
 {
@@ -92,7 +139,7 @@ getifaddr (char * dev)
 	strncpy (ifr.ifr_name, dev, IFNAMSIZ - 1);
 
 	if (ioctl (fd, SIOCGIFADDR, &ifr) < 0)
-		err (EXIT_FAILURE, "getifaddr");
+		err (EXIT_FAILURE, "can not get interface %s info", dev);
 
 	close (fd);
 
@@ -155,7 +202,7 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 		mhdr.msg_iovlen = 2;
 		mhdr.msg_controllen = 0;
 
-		if (sendmsg (vxlan.mst_send_sock, &mhdr, 0) < 0) 
+		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
 			error_warn("sendmsg to multicast failed");
 		
 	} else {
