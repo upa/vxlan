@@ -3,9 +3,7 @@ hogelan
 
 hogelan is simple vxlan implementation using Linux tap interface.
 
-	Usage :
-	# ./vxlan -h
-	Usage
+	Usage:
 		 -v : VXLAN Network Identifier (24bit Hex)
 		 -m : Multicast Address
 		 -i : Multicast Interface
@@ -15,13 +13,15 @@ hogelan is simple vxlan implementation using Linux tap interface.
 
 ex.1)
 
-simple L2 extention
+### Simple L2 extention
 
 	# ./vxlan -i eth0 -v 0 -m MCA.ST.AD.DR -n 0 -d
 	# brctl addbr br0
 	# btctl addif br0 vnet0
 	# brctl addif br0 vxlan0
 
+
+sapmle topology
 
 	+--------+
 	|   VM   |
@@ -40,7 +40,7 @@ simple L2 extention
 
 ex.2)
 
-with 802.1q tagging
+### with 802.1q tagging
 
 	# ./vxlan -i eth0 -v 0 -m MCA.ST.AD.DR -n 0 -d
 	# vconfig add vxlan0 100
@@ -49,6 +49,7 @@ with 802.1q tagging
 	# btctl addif br102 vxlan.102
 
 
+sample topology
 	                              +------------+
 	                              | 172.16.2.1 |
 	+------------+ +------------+ |    br102   |
