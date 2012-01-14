@@ -2,8 +2,7 @@ hogelan
 =======
 
 hogelan is simple vxlan implementation using Linux tap interface.
-
-tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
+http://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
 
 	Usage:
 		 -v : VXLAN Network Identifier (24bit Hex)
@@ -13,7 +12,7 @@ tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
 		 -d : Daemon Mode
 
 
-### ex.1) Simple L2 extention
+### ex.1) Simple L2 extension
 
 	# ./vxlan -i eth0 -v 0 -m MCA.ST.AD.DR -n 0 -d
 	# brctl addbr br0
@@ -22,7 +21,6 @@ tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
 
 
 sapmle topology
-
 	+--------+
 	|   VM   |
 	|vvvvvvvv|                     
@@ -49,7 +47,6 @@ sapmle topology
 
 
 sample topology
-
 	                              +------------+
 	                              | 172.16.2.1 |
 	+------------+ +------------+ |    br102   |
