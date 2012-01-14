@@ -3,6 +3,8 @@ hogelan
 
 hogelan is simple vxlan implementation using Linux tap interface.
 
+tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
+
 	Usage:
 		 -v : VXLAN Network Identifier (24bit Hex)
 		 -m : Multicast Address
