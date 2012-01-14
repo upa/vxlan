@@ -5,8 +5,8 @@
 #include <netinet/in.h>
 #include "hash.h"
 
-#define VXLAN_PORT 6000
-#define VXLAN_MCAST_PORT 6001
+#define VXLAN_PORT_BASE 6000
+#define VXLAN_MCAST_PORT_BASE 16000
 
 struct vxlan {
 	int tap_sock;
@@ -24,7 +24,8 @@ struct vxlan {
 };
 
 extern struct vxlan vxlan;
-
+extern unsigned short uport;
+extern unsigned short mport;
 
 
 struct vxlan_hdr {

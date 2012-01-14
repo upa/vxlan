@@ -14,9 +14,13 @@
 #include "net.h"
 #include "fdb.h"
 #include "iftap.h"
+#include "error.h"
 
 
 struct vxlan vxlan;
+unsigned short uport = 0;
+unsigned short mport = 0;
+
 
 void process_vxlan (void);
 
@@ -26,10 +30,11 @@ void debug_print_ether (struct ether_header * ether);
 void
 usage (void)
 {
-	printf ("usage\n");
+	printf ("Usage\n");
 	printf ("\t -v : VXLAN Network Identifier (24bit Hex)\n");
 	printf ("\t -m : Multicast Address\n");
 	printf ("\t -i : Multicast Interface\n");
+	printf ("\t -n : Sub-interface number (<4096)\n");
 	printf ("\t -d : Daemon Mode\n");
 	printf ("\n");
 }
@@ -40,6 +45,8 @@ main (int argc, char * argv[])
 {
 	int ch;
 	int d_flag = 0;
+        int sockopt;
+        int subn = 0;
 	u_int32_t vni32;
 	struct sockaddr_in * saddr_in;
 
@@ -47,10 +54,11 @@ main (int argc, char * argv[])
 	extern char * optarg;
 
 	char mcast_if_name[IFNAMSIZ];
+        char tunifname[IFNAMSIZ];
 	
 	memset (&vxlan, 0, sizeof (vxlan));
 
-	while ((ch = getopt (argc, argv, "v:m:i:d")) != -1) {
+	while ((ch = getopt (argc, argv, "v:m:i:n:d")) != -1) {
 		switch (ch) {
 		case 'v' :
 			if (optarg == NULL) {
@@ -61,12 +69,16 @@ main (int argc, char * argv[])
 			vni32 = strtol (optarg, NULL, 16);
 			if (vni32 == LONG_MAX) 
 				err (EXIT_FAILURE, "strtol overflow");
-			
-			(vni32 == LONG_MAX) ? err (EXIT_FAILURE, "strtol overflow") :
-				(vni32 == LONG_MIN) ? 
-				err (EXIT_FAILURE, "strtol underflow") :
-				memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
 
+                        if ( vni32 == LONG_MAX ) {
+                            err (EXIT_FAILURE, "strtol overflow");
+                        } else {
+                            if ( vni32 == LONG_MIN ) {
+                                err (EXIT_FAILURE, "strtol underflow");
+                            } else {
+                                memcpy (vxlan.vni, &vni32, VXLAN_VNISIZE);
+                            }
+                        }
 			break;
 
 		case 'm' :
@@ -81,7 +93,7 @@ main (int argc, char * argv[])
 			saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
 			saddr_in->sin_family = AF_INET;
 			saddr_in->sin_addr = vxlan.mcast_addr;
-			saddr_in->sin_port = htons (VXLAN_MCAST_PORT);
+			/*saddr_in->sin_port = htons (mport);*/
 			
 			break;
 
@@ -94,6 +106,15 @@ main (int argc, char * argv[])
 			
 			break;
 
+		case 'n' :
+			if ( optarg == NULL ) {
+				usage ();
+				return -1;
+			}
+			subn = atoi(optarg);
+			
+			break;
+
 		case 'd' :
 			d_flag = 1;
 			break;
@@ -103,16 +124,40 @@ main (int argc, char * argv[])
 			return -1;
 		}
 	}
+        if ( subn >= 4096 ) {
+            err (EXIT_FAILURE, "Invalid subinterface number %u", subn);
+        }
 
-	vxlan.tap_sock = tap_alloc (VXLAN_TUNNAME);
-	vxlan.udp_sock = udp_sock (VXLAN_PORT);
-	vxlan.mst_send_sock = mcast_send_sock (VXLAN_MCAST_PORT, 
+        /* Enable syslog */
+        error_enable_syslog();
+
+        (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
+        uport = VXLAN_PORT_BASE + subn;
+        mport = VXLAN_MCAST_PORT_BASE + subn;
+        saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
+        saddr_in->sin_port = htons(mport);
+
+	vxlan.tap_sock = tap_alloc(tunifname);
+	vxlan.udp_sock = udp_sock(uport);
+	vxlan.mst_send_sock = mcast_send_sock (mport,
 					       getifaddr (mcast_if_name));
-	vxlan.mst_recv_sock = mcast_recv_sock (VXLAN_MCAST_PORT,
-					       getifaddr (mcast_if_name), 
+	vxlan.mst_recv_sock = mcast_recv_sock (mport,
+					       getifaddr (mcast_if_name),
 					       vxlan.mcast_addr);
 
-	tap_up (VXLAN_TUNNAME);
+        sockopt = 0;
+        if ( 0 != setsockopt(vxlan.mst_send_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
+                             (void*)&sockopt, sizeof(sockopt)) ) {
+            err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
+        }
+#if 0
+        sockopt = 0;
+        if ( 0 != setsockopt(vxlan.mst_recv_sock, IPPROTO_IP, IP_MULTICAST_LOOP,
+                             (void*)&sockopt, sizeof(sockopt)) ) {
+            err ( EXIT_FAILURE, "failed to disable IP_MULTICAST_LOOP" );
+        }
+#endif
+	tap_up(tunifname);
 	init_hash (&vxlan.fdb);
 	fdb_decrease_ttl_init ();
 
@@ -157,7 +202,7 @@ process_vxlan (void)
 		/* From Tap */
 		if (FD_ISSET (vxlan.tap_sock, &fds)) {
 			if ((len = read (vxlan.tap_sock, buf, sizeof (buf))) < 0) {
-				warn ("read from tap failed");
+				error_warn("read from tap failed");
 				continue;
 			}
 			send_etherflame_from_local_to_vxlan ((struct ether_header *)buf, len);
@@ -167,7 +212,7 @@ process_vxlan (void)
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
 			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
-				warn ("read from udp unicast socket failed");
+				error_warn("read from udp unicast socket failed");
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
@@ -185,7 +230,7 @@ process_vxlan (void)
 		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
 			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
 					     &src_saddr, &peer_addr_len)) < 0) {
-				warn ("read from udp multicast socket failed");
+				error_warn("read from udp multicast socket failed");
 				continue;
 			}
 			src_saddr_in = (struct sockaddr_in *) &src_saddr;
