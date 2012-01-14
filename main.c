@@ -73,7 +73,7 @@ main (int argc, char * argv[])
 				if ( vni32 == LONG_MIN ) {
 					err (EXIT_FAILURE, "strtol underflow");
 				} else {
-					u_int8_t * vp = &vni32;
+					u_int8_t * vp = (u_int8_t *) &vni32;
 					vxlan.vni[0] = *(vp + 3);
 					vxlan.vni[1] = *(vp + 2);
 					vxlan.vni[2] = *(vp + 1);
@@ -205,7 +205,7 @@ process_vxlan (void)
 			msg.msg_control = cbuf;
 			msg.msg_controllen = sizeof (cbuf);
 			
-			if (recvmsg (vxlan.udp_sock, &msg, 0) < 0) {
+			if ((len = recvmsg (vxlan.udp_sock, &msg, 0)) < 0) {
 				error_warn ("read from udp socket failed");
 				continue;
 			}
