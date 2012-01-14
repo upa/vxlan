@@ -11,9 +11,7 @@ hogelan is simple vxlan implementation using Linux tap interface.
 		 -d : Daemon Mode
 
 
-ex.1)
-
-### Simple L2 extention
+### ex.1) Simple L2 extention
 
 	# ./vxlan -i eth0 -v 0 -m MCA.ST.AD.DR -n 0 -d
 	# brctl addbr br0
@@ -38,9 +36,8 @@ sapmle topology
 
 
 
-ex.2)
 
-### with 802.1q tagging
+### ex.2) with 802.1q tagging
 
 	# ./vxlan -i eth0 -v 0 -m MCA.ST.AD.DR -n 0 -d
 	# vconfig add vxlan0 100
