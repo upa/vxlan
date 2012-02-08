@@ -1,16 +1,17 @@
-#include "net.h"
-#include "common.h"
-#include "fdb.h"
-#include "error.h"
-
 #include <err.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <linux/if_ether.h>
+
+#include "net.h"
+#include "common.h"
+#include "fdb.h"
+#include "error.h"
 
 
 struct in_addr
@@ -91,10 +92,10 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 
 	if ((entry = fdb_search_entry (vxlan.fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
 		mhdr.msg_name = &vxlan.mcast_addr;
-		mhdr.msg_namelen = SA_LEN (&vxlan.mcast_addr);
+		mhdr.msg_namelen = sizeof (vxlan.mcast_addr);
 	} else {
 		mhdr.msg_name = &entry->vtep_addr;
-		mhdr.msg_namelen = SA_LEN (&entry->vtep_addr);
+		mhdr.msg_namelen = sizeof (entry->vtep_addr);
 	}
 	
 	if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 

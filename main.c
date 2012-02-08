@@ -42,13 +42,12 @@ main (int argc, char * argv[])
 {
 	int ch;
 	int d_flag = 0;
-        int sockopt;
         int subn = 0;
 	u_int32_t vni32;
-	struct sockaddr_in * saddr_in;
 
 	extern int opterr;	
 	extern char * optarg;
+	struct addrinfo hints, *res;
 
 	char mcast_caddr[40];
 	char vxlan_if_name[IFNAMSIZ];
@@ -121,22 +120,17 @@ main (int argc, char * argv[])
 
 
         /* Enable syslog */
-//        error_enable_syslog();
+        error_enable_syslog();
 
 
 	/* Create UDP Mulciast/Unicast Socket */
-	struct addrinfo hints, *res;
-	char c_port[16];
-
-        vxlan.port = VXLAN_PORT_BASE + subn;
-	snprintf (c_port, sizeof (c_port), "%d", vxlan.port);
 
 	memset (&hints, 0, sizeof (hints));
 	hints.ai_family = AF_UNSPEC;
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
 			
-	if (getaddrinfo (mcast_caddr, c_port, &hints, &res) != 0)
+	if (getaddrinfo (mcast_caddr, NULL, &hints, &res) != 0)
 		error_quit ("Invalid Multicast Address \"%s\"", mcast_caddr);
 
 	if ((vxlan.udp_sock = socket (res->ai_family, 
@@ -144,19 +138,15 @@ main (int argc, char * argv[])
 				      res->ai_protocol)) < 0)
 		err (EXIT_FAILURE, "can not create socket");
 
-
 	memcpy (&vxlan.mcast_addr, res->ai_addr, res->ai_addrlen);
 
 	freeaddrinfo (res);
 
-	int off = 1, ttl = 255;
-	struct sockaddr * saddr;
+	int off = 0, ttl = 255;
 	struct ip_mreq mreq;
 	struct ipv6_mreq mreq6;
-
-	saddr = (struct sockaddr *) &vxlan.mcast_addr;
 	
-	switch (saddr->sa_family) {
+	switch (((struct sockaddr *)&vxlan.mcast_addr)->sa_family) {
 	case AF_INET :
 		mreq.imr_multiaddr = ((struct sockaddr_in *)&vxlan.mcast_addr)->sin_addr;
 		mreq.imr_interface = getifaddr (vxlan_if_name);
@@ -170,7 +160,8 @@ main (int argc, char * argv[])
 		if (setsockopt (vxlan.udp_sock,
 				IPPROTO_IP,
 				IP_MULTICAST_IF,
-				(char *)&mreq.imr_interface, sizeof (mreq.imr_interface)) < 0)
+				(char *)&mreq.imr_interface, 
+				sizeof (mreq.imr_interface)) < 0)
 			err (EXIT_FAILURE, "can not set multicast interface");
 
 		if (setsockopt (vxlan.udp_sock,
@@ -224,21 +215,22 @@ main (int argc, char * argv[])
 		error_quit ("unkown protocol family");
 	}
 
+        vxlan.port = VXLAN_PORT_BASE + subn;
+	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_port = htons (vxlan.port);
+
+
 	/* Create vxlan tap interface socket */
 
         if (subn >= 4096 ) {
             error_quit ("Invalid subinterface number %u", subn);
         }
 
-
-        saddr_in = (struct sockaddr_in *) &vxlan.mcast_addr;
-        saddr_in->sin_port = htons(vxlan.port);
-
         (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
 	vxlan.tap_sock = tap_alloc(tunifname);
 	tap_up(tunifname);
-	vxlan.fdb = init_fdb ();
 
+
+	vxlan.fdb = init_fdb ();
 
 	if (d_flag > 0) {
 		if (daemon (0, 0) < 0)
@@ -246,6 +238,9 @@ main (int argc, char * argv[])
 	}
 
 	process_vxlan ();
+
+
+	/* not reached */
 
 	return -1;
 }
