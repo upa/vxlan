@@ -169,6 +169,12 @@ main (int argc, char * argv[])
 
 		if (setsockopt (vxlan.udp_sock,
 				IPPROTO_IP,
+				IP_MULTICAST_IF,
+				(char *)&mreq.imr_interface, sizeof (mreq.imr_interface)) < 0)
+			err (EXIT_FAILURE, "can not set multicast interface");
+
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IP,
 				IP_MULTICAST_LOOP,
 				(char *)&off, sizeof (off)) < 0)
 			err (EXIT_FAILURE, "can not set off multicast loop");
@@ -194,6 +200,13 @@ main (int argc, char * argv[])
 				(char *)&mreq6, sizeof (mreq6)) < 0)
 			err (EXIT_FAILURE, "can not join multicast %s", mcast_caddr);
 		
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IPV6,
+				IPV6_MULTICAST_IF,
+				(char *)&mreq6.ipv6mr_interface, 
+				sizeof (mreq6.ipv6mr_interface)) < 0)
+			err (EXIT_FAILURE, "can not join multicast %s", mcast_caddr);
+
 		if (setsockopt (vxlan.udp_sock,
 				IPPROTO_IPV6,
 				IPV6_MULTICAST_LOOP,
