@@ -1,3 +1,4 @@
-*.o
-vxlan
 *test*
+vxlan
+*.o
+

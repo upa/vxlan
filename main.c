@@ -8,7 +8,7 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 #include <signal.h>
-
+#include <netdb.h>
 
 #include "common.h"
 #include "net.h"
@@ -29,7 +29,7 @@ usage (void)
 {
 	printf ("Usage\n");
 	printf ("\t -v : VXLAN Network Identifier (24bit Hex)\n");
-	printf ("\t -m : Multicast Address\n");
+	printf ("\t -m : Multicast Address(v4/v6)\n");
 	printf ("\t -i : Multicast Interface\n");
 	printf ("\t -n : Sub-interface number (<4096)\n");
 	printf ("\t -d : Daemon Mode\n");
@@ -50,6 +50,7 @@ main (int argc, char * argv[])
 	extern int opterr;	
 	extern char * optarg;
 
+	char mcast_caddr[40];
 	char vxlan_if_name[IFNAMSIZ];
         char tunifname[IFNAMSIZ];
 	
@@ -86,14 +87,8 @@ main (int argc, char * argv[])
 				usage ();
 				return -1;
 			}
+			strncpy (mcast_caddr, optarg, sizeof (mcast_caddr));
 
-			if (inet_pton (AF_INET, optarg, &vxlan.mcast_addr) < 1) 
-				err (EXIT_FAILURE, "invalid Mcast Address %s", optarg);
-
-			saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
-			saddr_in->sin_family = AF_INET;
-			saddr_in->sin_addr = vxlan.mcast_addr;
-			
 			break;
 
 		case 'i' :
@@ -123,24 +118,114 @@ main (int argc, char * argv[])
 			return -1;
 		}
 	}
-        if ( subn >= 4096 ) {
-            err (EXIT_FAILURE, "Invalid subinterface number %u", subn);
-        }
+
 
         /* Enable syslog */
-        error_enable_syslog();
+//        error_enable_syslog();
 
-        (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
+
+	/* Create UDP Mulciast/Unicast Socket */
+	struct addrinfo hints, *res;
+	char c_port[16];
+
         vxlan.port = VXLAN_PORT_BASE + subn;
-        saddr_in = (struct sockaddr_in *) &vxlan.mcast_saddr;
+	snprintf (c_port, sizeof (c_port), "%d", vxlan.port);
+
+	memset (&hints, 0, sizeof (hints));
+	hints.ai_family = AF_UNSPEC;
+	hints.ai_socktype = SOCK_DGRAM;
+	hints.ai_protocol = IPPROTO_UDP;
+			
+	if (getaddrinfo (mcast_caddr, c_port, &hints, &res) != 0)
+		error_quit ("Invalid Multicast Address \"%s\"", mcast_caddr);
+
+	if ((vxlan.udp_sock = socket (res->ai_family, 
+				      res->ai_socktype,
+				      res->ai_protocol)) < 0)
+		err (EXIT_FAILURE, "can not create socket");
+
+
+	memcpy (&vxlan.mcast_addr, res->ai_addr, res->ai_addrlen);
+
+	freeaddrinfo (res);
+
+	int off = 1, ttl = 255;
+	struct sockaddr * saddr;
+	struct ip_mreq mreq;
+	struct ipv6_mreq mreq6;
+
+	saddr = (struct sockaddr *) &vxlan.mcast_addr;
+	
+	switch (saddr->sa_family) {
+	case AF_INET :
+		mreq.imr_multiaddr = ((struct sockaddr_in *)&vxlan.mcast_addr)->sin_addr;
+		mreq.imr_interface = getifaddr (vxlan_if_name);
+
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IP, 
+				IP_ADD_MEMBERSHIP,
+				(char *)&mreq, sizeof (mreq)) < 0)
+			err (EXIT_FAILURE, "can not join multicast %s", mcast_caddr);
+
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IP,
+				IP_MULTICAST_LOOP,
+				(char *)&off, sizeof (off)) < 0)
+			err (EXIT_FAILURE, "can not set off multicast loop");
+
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IP,
+				IP_MULTICAST_TTL,
+				(char *)&ttl, sizeof (ttl)) < 0)
+			err (EXIT_FAILURE, "can not set ttl");
+
+		break;
+
+	case AF_INET6 :
+		mreq6.ipv6mr_multiaddr = ((struct sockaddr_in6 *)&vxlan.mcast_addr)->sin6_addr;
+		mreq6.ipv6mr_interface = if_nametoindex (vxlan_if_name);
+
+		if (mreq6.ipv6mr_interface < 0)
+			err (EXIT_FAILURE, "%s does not exist", vxlan_if_name);
+
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IPV6,
+				IPV6_ADD_MEMBERSHIP,
+				(char *)&mreq6, sizeof (mreq6)) < 0)
+			err (EXIT_FAILURE, "can not join multicast %s", mcast_caddr);
+		
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IPV6,
+				IPV6_MULTICAST_LOOP,
+				(char *)&off, sizeof (off)) < 0)
+			err (EXIT_FAILURE, "can not set off multicast loop");
+
+		if (setsockopt (vxlan.udp_sock,
+				IPPROTO_IPV6,
+				IPV6_MULTICAST_HOPS,
+				(char *)&ttl, sizeof (ttl)) < 0)
+			err (EXIT_FAILURE, "can not set ttl");
+		break;
+
+	default :
+		error_quit ("unkown protocol family");
+	}
+
+	/* Create vxlan tap interface socket */
+
+        if (subn >= 4096 ) {
+            error_quit ("Invalid subinterface number %u", subn);
+        }
+
+
+        saddr_in = (struct sockaddr_in *) &vxlan.mcast_addr;
         saddr_in->sin_port = htons(vxlan.port);
 
+        (void)snprintf(tunifname, IFNAMSIZ, "%s%d", VXLAN_TUNNAME, subn);
 	vxlan.tap_sock = tap_alloc(tunifname);
-	vxlan.udp_sock = mcast_sock (vxlan.port, getifaddr (vxlan_if_name), vxlan.mcast_addr);
-
 	tap_up(tunifname);
-	init_hash (&vxlan.fdb);
-	fdb_decrease_ttl_init ();
+	vxlan.fdb = init_fdb ();
+
 
 	if (d_flag > 0) {
 		if (daemon (0, 0) < 0)
@@ -162,7 +247,8 @@ process_vxlan (void)
 
 	struct vxlan_hdr 	* vhdr;
 	struct ether_header 	* ether;
-	socklen_t peer_addr_len;
+	struct sockaddr_storage sa_str;
+	socklen_t s_t = sizeof (sa_str);
 
 	memset (buf, 0, sizeof (buf));
 
@@ -185,97 +271,25 @@ process_vxlan (void)
 			send_etherflame_from_local_to_vxlan ((struct ether_header *)buf, len);
 		}
 
-		/* From Unicast UDP */ 
+		
+		/* From Internet */
 		if (FD_ISSET (vxlan.udp_sock, &fds)) {
-			struct in_addr src_addr, dst_addr;
-			struct msghdr msg;
-			struct iovec iov[1];
-			char cbuf[512];
-			struct in_pktinfo * pktinfo;
-			struct cmsghdr * cmsg;
-			struct sockaddr_in sin;
-			
-			iov[0].iov_base = buf;
-			iov[0].iov_len = sizeof (buf);
-			
-			msg.msg_name = &sin;
-			msg.msg_namelen = sizeof (sin);
-			msg.msg_iov = iov;
-			msg.msg_iovlen = 1;
-			msg.msg_control = cbuf;
-			msg.msg_controllen = sizeof (cbuf);
-			
-			if ((len = recvmsg (vxlan.udp_sock, &msg, 0)) < 0) {
+
+			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
+					     (struct sockaddr *)&sa_str, &s_t)) < 0) {
 				error_warn ("read from udp socket failed");
 				continue;
 			}
 			
-			pktinfo = NULL;
-			for (cmsg = CMSG_FIRSTHDR (&msg); 
-			     cmsg != NULL; cmsg = CMSG_NXTHDR (&msg, cmsg)) {
-				if (cmsg->cmsg_level == IPPROTO_IP &&
-				    cmsg->cmsg_type == IP_PKTINFO) {
-					pktinfo = (struct in_pktinfo *) CMSG_DATA (cmsg);
-					dst_addr = pktinfo->ipi_addr;
-					src_addr = sin.sin_addr;
-					break;
-				}
-			}
-
-			if (pktinfo == NULL) {
-				error_warn ("No pktinfo failed");
-				continue;
-			}
-			
 			vhdr = (struct vxlan_hdr *) buf;
-			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)	continue;
-
-			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
-			process_fdb_etherflame_from_vxlan (ether, &src_addr);
-			send_etherflame_from_vxlan_to_local (ether, 
-							     len - sizeof (struct vxlan_hdr));
-		}
-
-		
-
-#if 0
-		if (FD_ISSET (vxlan.udp_sock, &fds)) {
-			if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
-					     &src_saddr, &peer_addr_len)) < 0) {
-				error_warn("read from udp unicast socket failed");
-				continue;
-			}
-			src_saddr_in = (struct sockaddr_in *) &src_saddr;
-
-			vhdr = (struct vxlan_hdr *) buf;
-			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)	continue;
-
-			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
-			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
-			send_etherflame_from_vxlan_to_local (ether, 
-							     len - sizeof (struct vxlan_hdr));
-		}
-
-		/* From Multicast */
-		if (FD_ISSET (vxlan.mst_recv_sock, &fds)) {
-			if ((len = recvfrom (vxlan.mst_recv_sock, buf, sizeof (buf), 0, 
-					     &src_saddr, &peer_addr_len)) < 0) {
-				error_warn("read from udp multicast socket failed");
-				continue;
-			}
-			src_saddr_in = (struct sockaddr_in *) &src_saddr;
-
-			vhdr = (struct vxlan_hdr *) buf;
-			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)
+			if (CHECK_VNI (vhdr->vxlan_vni, vxlan.vni) < 0)	
 				continue;
 
 			ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
-			process_fdb_etherflame_from_vxlan (ether, &src_saddr_in->sin_addr);
+			process_fdb_etherflame_from_vxlan (ether, &sa_str);
 			send_etherflame_from_vxlan_to_local (ether, 
 							     len - sizeof (struct vxlan_hdr));
 		}
-
-#endif
 	}
 
 	return;
@@ -308,6 +322,3 @@ debug_print_ether (struct ether_header * ether)
 	return;
 }
 
-
-
-void debug_print_ether (struct ether_header * ether);

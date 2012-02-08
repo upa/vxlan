@@ -13,13 +13,12 @@ struct vxlan {
 
 	unsigned short port;
 
-	pthread_t decrease_ttl_t;
-
 	u_int8_t vni[3];
-	struct in_addr  mcast_addr;	/* vxlan Multicast Address */
-	struct sockaddr mcast_saddr;	/* vxlan Multicast Address in Sockaddr  */
 
-	struct hash fdb;
+	struct sockaddr_storage mcast_addr; /* vxlan Multicast Address */
+	size_t mcast_addr_len;
+
+	struct fdb * fdb;
 };
 
 extern struct vxlan vxlan;
@@ -35,9 +34,13 @@ struct vxlan_hdr {
 #define VXLAN_VALIDFLAG 0x08
 #define VXLAN_VNISIZE	3
 
-
 #define VXLAN_TUNNAME "vxlan"
 
-#define VXLAN_PACKET_BUF_LEN 1600
+#define VXLAN_PACKET_BUF_LEN 9216
+
+#define SA_LEN(a)      \
+	(((struct sockaddr *)(a))->sa_family == AF_INET) ? \
+	sizeof (struct sockaddr_in) : sizeof (struct sockaddr_in6)
+	
 
 #endif

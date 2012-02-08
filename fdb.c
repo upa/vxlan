@@ -7,31 +7,53 @@
 #include <signal.h>
 #include <pthread.h>
 
-int
-fdb_add_entry (struct hash * fdb, u_int8_t * mac, struct in_addr vtep)
-{
-	struct fdb_entry * entry;
-	struct sockaddr_in saddr_in;
-	
-	entry = (struct fdb_entry *) malloc (sizeof (struct fdb_entry));
-	memset (entry, 0, sizeof (struct fdb_entry));
-	
-	saddr_in.sin_family = AF_INET;
-	saddr_in.sin_port = htons (vxlan.port);
-	saddr_in.sin_addr = vtep;
+#define FDB_DECREASE_TTL_INTERVAL 1
 
-	memcpy (&entry->vtep_addr, &saddr_in, sizeof (saddr_in));
-	entry->ttl = FDB_CACHE_TTL;
+void fdb_decrease_ttl_thread_init (struct fdb * fdb);
+void * fdb_decrease_ttl_thread (void * param);
+
+
+struct fdb * 
+init_fdb (void)
+{
+	struct fdb * fdb;
+
+	fdb = (struct fdb *) malloc (sizeof (struct fdb));
+	init_hash (&fdb->fdb);
+	fdb->fdb_max_ttl = FDB_DEFAULT_CACHE_MAX_TTL;
 	
-	return insert_hash (fdb, entry, mac);
+	fdb_decrease_ttl_thread_init (fdb);
+
+	return fdb;
+}
+
+void
+destroy_fdb (struct fdb * fdb)
+{
+	pthread_cancel (fdb->decrease_ttl_t);
+	return;
 }
 
 int
-fdb_del_entry (struct hash * fdb, u_int8_t * mac) 
+fdb_add_entry (struct fdb * fdb, u_int8_t * mac, struct sockaddr_storage vtep_addr)
 {
 	struct fdb_entry * entry;
 	
-	if ((entry = delete_hash (fdb, mac)) != NULL) {
+	entry = (struct fdb_entry *) malloc (sizeof (struct fdb_entry));
+	memset (entry, 0, sizeof (struct fdb_entry));
+
+	entry->vtep_addr = vtep_addr;
+	entry->ttl = fdb->fdb_max_ttl;
+	
+	return insert_hash (&fdb->fdb, entry, mac);
+}
+
+int
+fdb_del_entry (struct fdb * fdb, u_int8_t * mac) 
+{
+	struct fdb_entry * entry;
+	
+	if ((entry = delete_hash (&fdb->fdb, mac)) != NULL) {
 		free (entry);
 		return 1;
 	} 
@@ -41,47 +63,49 @@ fdb_del_entry (struct hash * fdb, u_int8_t * mac)
 
 
 struct fdb_entry *
-fdb_search_entry (struct hash * fdb, u_int8_t * mac)
+fdb_search_entry (struct fdb * fdb, u_int8_t * mac)
 {
-	return search_hash (fdb, mac);
+	return search_hash (&fdb->fdb, mac);
 }
 
 struct sockaddr *
-fdb_search_vtep_addr (struct hash * fdb, u_int8_t * mac)
+fdb_search_vtep_addr (struct fdb * fdb, u_int8_t * mac)
 {
 	struct fdb_entry * entry;
 	
-	if ((entry = search_hash (fdb, mac)) == NULL)
+	if ((entry = search_hash (&fdb->fdb, mac)) == NULL)
 		return NULL;
 	
-	return &entry->vtep_addr;
+	return (struct sockaddr *) &entry->vtep_addr;
 }
 
 
-void
-fdb_decrease_ttl_init (void)
+void 
+fdb_decrease_ttl_thread_init (struct fdb * fdb)
 {
 	pthread_attr_t attr;
 	
 	pthread_attr_init (&attr);
 	pthread_attr_setdetachstate (&attr, PTHREAD_CREATE_DETACHED);
-	pthread_create (&vxlan.decrease_ttl_t, &attr, fdb_decrease_ttl, NULL);
+	pthread_create (&fdb->decrease_ttl_t, &attr, fdb_decrease_ttl_thread, fdb);
 
 	return;
 }
 
 void * 
-fdb_decrease_ttl (void * param)
+fdb_decrease_ttl_thread (void * param)
 {
 	int n;
-	struct hash * fdb = &vxlan.fdb;
+	struct fdb * fdb = (struct fdb *) param;
 	struct hashnode * ptr, * prev;
 	struct fdb_entry * entry;
 
+	struct hash * hash = &fdb->fdb;
+
 	for (n = 0; n < HASH_TABLE_SIZE; n++) {
-		pthread_mutex_lock (&fdb->mutex[n]);
-		prev = &fdb->table[n];
-		for (ptr = fdb->table[n].next; ptr != NULL; ptr = ptr->next) {
+		pthread_mutex_lock (&hash->mutex[n]);
+		prev = &hash->table[n];
+		for (ptr = hash->table[n].next; ptr != NULL; ptr = ptr->next) {
 			entry = (struct fdb_entry *) ptr->data;
 			entry->ttl--;
 			if (entry->ttl <= 0) {
@@ -93,7 +117,7 @@ fdb_decrease_ttl (void * param)
 				prev = ptr;
 			
 		}
-		pthread_mutex_unlock (&fdb->mutex[n]);
+		pthread_mutex_unlock (&hash->mutex[n]);
 		sleep (FDB_DECREASE_TTL_INTERVAL);
 	}
 

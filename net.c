@@ -149,20 +149,23 @@ getifaddr (char * dev)
 }
 
 void
-process_fdb_etherflame_from_vxlan (struct ether_header * ether, struct in_addr * vtep_addr)
+process_fdb_etherflame_from_vxlan (struct ether_header * ether, 
+				   struct sockaddr_storage * vtep_addr)
 {
 	struct fdb_entry * entry;
 	struct sockaddr_in * saddr_in;
 	
-	entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *) ether->ether_shost);
+	entry = fdb_search_entry (vxlan.fdb, (u_int8_t *) ether->ether_shost);
+
 	if (entry == NULL)
-		fdb_add_entry (&vxlan.fdb, (u_int8_t *) ether->ether_shost, *vtep_addr);
+		fdb_add_entry (vxlan.fdb, (u_int8_t *) ether->ether_shost, *vtep_addr);
 	else {
-		saddr_in = (struct sockaddr_in *) &entry->vtep_addr;
-		if (saddr_in->sin_addr.s_addr != vtep_addr->s_addr) {
-			saddr_in->sin_addr = *vtep_addr;
+		if (COMPARE_SOCKADDR (vtep_addr, &entry->vtep_addr)) {
+			entry->ttl = vxlan.fdb->fdb_max_ttl;
+		} else {
+			entry->vtep_addr = * vtep_addr;
+			entry->ttl = vxlan.fdb->fdb_max_ttl;
 		}
-		entry->ttl = FDB_CACHE_TTL;
 	}
 
 	return;
@@ -195,28 +198,21 @@ send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len)
 	iov[1].iov_base = ether;
 	iov[1].iov_len  = len;
 
-	if ((entry = fdb_search_entry (&vxlan.fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
-		mhdr.msg_name = &vxlan.mcast_saddr;
-		mhdr.msg_namelen = sizeof (vxlan.mcast_saddr);
-		mhdr.msg_iov = iov;
-		mhdr.msg_iovlen = 2;
-		mhdr.msg_controllen = 0;
+	mhdr.msg_iov = iov;
+	mhdr.msg_iovlen = 2;
+	mhdr.msg_controllen = 0;
 
-		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
-			error_warn("sendmsg to multicast failed");
-		
+	if ((entry = fdb_search_entry (vxlan.fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
+		mhdr.msg_name = &vxlan.mcast_addr;
+		mhdr.msg_namelen = SA_LEN (&vxlan.mcast_addr);
 	} else {
 		mhdr.msg_name = &entry->vtep_addr;
-		mhdr.msg_namelen = sizeof (entry->vtep_addr);
-		mhdr.msg_iov = iov;
-		mhdr.msg_iovlen = 2;
-		mhdr.msg_controllen = 0;
-
-		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
-			error_warn("sendmsg to unicast failed");
-		
+		mhdr.msg_namelen = SA_LEN (&entry->vtep_addr);
 	}
 	
+	if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
+		error_warn("sendmsg to multicast failed");
+
 	return;
 }
 

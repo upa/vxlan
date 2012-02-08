@@ -20,7 +20,7 @@ struct hash {
 
 
 void init_hash (struct hash * hash);
-int insert_hash (struct hash * hash, void * data, void * key);
+int  insert_hash (struct hash * hash, void * data, void * key);
 void * delete_hash (struct hash * hash, void * key);
 void * search_hash (struct hash * hash, void * key);
 
