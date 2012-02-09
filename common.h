@@ -12,18 +12,31 @@
 #define VXLAN_PACKET_BUF_LEN	9216
 
 
-struct vxlan {
+struct vxlan_instance {
+	u_int8_t vni[VXLAN_VNISIZE];
+	char vxlan_tap_name[IFNAMSIZ];
+
+	struct fdb * fdb;
+
+	pthread_t tid;
 	int tap_sock;
+};
+
+
+struct vxlan {
 	int udp_sock;
 
 	unsigned short port;
-	u_int8_t vni[3];
 	struct sockaddr_storage mcast_addr; 	/* vxlan Multicast Address */
 
-	struct fdb * fdb;
+	int vins_num;
+	struct hash vins_tuple;
+	struct vxlan_instance ** vins;
 };
 
+
 extern struct vxlan vxlan;
+
 
 
 struct vxlan_hdr {

@@ -59,7 +59,7 @@ CONFIG_CLEAN_VPATH_FILES =
 am__installdirs = "$(DESTDIR)$(bindir)"
 PROGRAMS = $(bin_PROGRAMS)
 am_vxlan_OBJECTS = main.$(OBJEXT) fdb.$(OBJEXT) hash.$(OBJEXT) \
-	iftap.$(OBJEXT) net.$(OBJEXT) error.$(OBJEXT)
+	iftap.$(OBJEXT) net.$(OBJEXT) vxlan.$(OBJEXT) error.$(OBJEXT)
 vxlan_OBJECTS = $(am_vxlan_OBJECTS)
 vxlan_LDADD = $(LDADD)
 vxlan_LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(vxlan_LDFLAGS) \
@@ -212,8 +212,8 @@ target_alias =
 top_build_prefix = 
 top_builddir = .
 top_srcdir = .
-vxlan_SOURCES = main.c fdb.c hash.c iftap.c net.c common.h fdb.h hash.h \
-	iftap.h net.h error.c error.h
+vxlan_SOURCES = main.c fdb.c hash.c iftap.c net.c vxlan.c common.h fdb.h hash.h \
+	iftap.h net.h error.c error.h vxlan.h
 
 vxlan_LDFLAGS = -lpthread
 CLEANFILES = *~
@@ -326,6 +326,7 @@ include ./$(DEPDIR)/hash.Po
 include ./$(DEPDIR)/iftap.Po
 include ./$(DEPDIR)/main.Po
 include ./$(DEPDIR)/net.Po
+include ./$(DEPDIR)/vxlan.Po
 
 .c.o:
 	$(COMPILE) -MT $@ -MD -MP -MF $(DEPDIR)/$*.Tpo -c -o $@ $<

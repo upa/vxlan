@@ -19,7 +19,7 @@ init_fdb (void)
 	struct fdb * fdb;
 
 	fdb = (struct fdb *) malloc (sizeof (struct fdb));
-	init_hash (&fdb->fdb);
+	init_hash (&fdb->fdb, 6);
 	fdb->fdb_max_ttl = FDB_DEFAULT_CACHE_MAX_TTL;
 	
 	fdb_decrease_ttl_thread_init (fdb);
@@ -41,6 +41,7 @@ fdb_add_entry (struct fdb * fdb, u_int8_t * mac, struct sockaddr_storage vtep_ad
 	
 	entry = (struct fdb_entry *) malloc (sizeof (struct fdb_entry));
 	memset (entry, 0, sizeof (struct fdb_entry));
+
 
 	entry->vtep_addr = vtep_addr;
 	entry->ttl = fdb->fdb_max_ttl;

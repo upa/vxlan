@@ -5,22 +5,29 @@
 #include <net/ethernet.h>
 #include <netinet/if_ether.h>
 
+#include "common.h"
+
+void process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
+                                        struct ether_header * ether,
+                                        struct sockaddr_storage * vtep_addr);
+
+void send_etherflame_from_vxlan_to_local (struct vxlan_instance * vins,
+                                          struct ether_header * ether, int len);
+
+void send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
+                                          struct ether_header * ether, int len);
+
+
 struct in_addr getifaddr (char * dev);
 
-void process_fdb_etherflame_from_vxlan (struct ether_header * ether,
-					struct sockaddr_storage * vtep_addr);
-void send_etherflame_from_vxlan_to_local (struct ether_header * ether, int len);
-void send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len);
-
-void set_ipv4_multicast_join (int socket, struct in_addr maddr);
-void set_ipv4_multicast_iface (int socket, struct in_addr ifaddr);
+void set_ipv4_multicast_join_and_iface (int socket, struct in_addr maddr, char * ifname);
+void set_ipv6_multicast_join_and_iface (int socket, struct in6_addr maddr, char * ifname);
 void set_ipv4_multicast_loop (int socket, int stat);
-void set_ipv4_multicast_ttl (int socket, int ttl);
-
-void set_ipv6_multicast_join (int socket, struct in6_addr maddr);
-void set_ipv6_multicast_iface (int socket, unsigned int ifindex);
 void set_ipv6_multicast_loop (int socket, int stat);
 void set_ipv6_multicast_ttl (int socket, int ttl);
+void set_ipv4_multicast_ttl (int socket, int ttl);
+void bind_ipv4_inaddrany (int socket, int port);
+void bind_ipv6_inaddrany (int socket, int port);
 
 
 #define CHECK_VNI(v1, v2)		\

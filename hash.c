@@ -6,10 +6,10 @@
 
 
 void
-init_hash (struct hash * hash)
+init_hash (struct hash * hash, int keylen)
 {
 	int n;
-
+	
 	memset (hash, 0, sizeof (struct hash));
 	for (n = 0; n < HASH_TABLE_SIZE; n++) {
 		hash->table[n].data = NULL;
@@ -17,11 +17,13 @@ init_hash (struct hash * hash)
 		pthread_mutex_init (&hash->mutex[n], NULL);
 	}
 	
+	hash->keylen = keylen;
+
 	return;
 }
 
 int
-calculate_hash (void * key)
+calculate_hash (void * key, int keylen)
 {
 
 	int len;
@@ -31,7 +33,7 @@ calculate_hash (void * key)
 	if (key == NULL)
 		return -1;
 
-	for (len = HASH_KEY_LEN; len > 0; len--) {
+	for (len = keylen; len > 0; len--) {
 		sum += *buf;
 		buf++;
 	}
@@ -41,7 +43,7 @@ calculate_hash (void * key)
 
 
 int
-compare_key (void * key1, void * key2)
+compare_key (void * key1, void * key2, int keylen)
 {
 	int i;
 	u_int8_t * kb1 = (u_int8_t *) key1, 
@@ -50,7 +52,7 @@ compare_key (void * key1, void * key2)
 	if (key1 == NULL || key2 == NULL) 
 		return -1;
 	
-	for (i = 0; i < HASH_KEY_LEN; i++) {
+	for (i = 0; i < keylen; i++) {
 		if (*kb1 != *kb2) 
 			return -1;
 		kb1++;
@@ -66,14 +68,14 @@ insert_hash (struct hash * hash, void * data, void * key)
 	int hash_value;
 	struct hashnode * node, * ptr, * prev;
 	
-	if ((hash_value = calculate_hash (key)) < 0) 
+	if ((hash_value = calculate_hash (key, hash->keylen)) < 0) 
 		return -1;
 
 	prev = &hash->table[hash_value];
 	pthread_mutex_lock (&hash->mutex[hash_value]);
 
 	for (ptr = prev->next; ptr != NULL; ptr = ptr->next) {
-		if (compare_key (key, ptr->key) == 0) {
+		if (compare_key (key, ptr->key, hash->keylen) == 0) {
 			pthread_mutex_unlock (&hash->mutex[hash_value]);
 			return -1;
 		}
@@ -84,7 +86,8 @@ insert_hash (struct hash * hash, void * data, void * key)
 	memset (node, 0, sizeof (struct hashnode));
 	node->next = NULL;
 	node->data = data;
-	memcpy (node->key, key, HASH_KEY_LEN);
+	node->key  = (u_int8_t *) malloc (hash->keylen);
+	memcpy (node->key, key, hash->keylen);
 	prev->next = node;
 
 	pthread_mutex_unlock (&hash->mutex[hash_value]);
@@ -99,7 +102,7 @@ delete_hash (struct hash * hash, void * key)
 	void * data;
 	struct hashnode * ptr, * prev;
 
-	if ((hash_value = calculate_hash (key)) < 0) 
+	if ((hash_value = calculate_hash (key, hash->keylen)) < 0) 
 		return NULL;
 
 	prev = &hash->table[hash_value];
@@ -107,7 +110,7 @@ delete_hash (struct hash * hash, void * key)
 	pthread_mutex_lock (&hash->mutex[hash_value]);	
 
 	for (ptr = prev->next; ptr != NULL; ptr = ptr->next) {
-		if (compare_key (key, ptr->key) == 0)
+		if (compare_key (key, ptr->key, hash->keylen) == 0)
 			break;
 		prev = ptr;
 	}
@@ -119,6 +122,7 @@ delete_hash (struct hash * hash, void * key)
 
 	prev->next = ptr->next;
 	data = ptr->data;
+	free (ptr->key);
 	free (ptr);
 
 	pthread_mutex_unlock (&hash->mutex[hash_value]);	
@@ -132,7 +136,7 @@ search_hash (struct hash * hash, void * key)
 	int hash_value;
 	struct hashnode * ptr;
 
-	if ((hash_value = calculate_hash (key))	< 0)
+	if ((hash_value = calculate_hash (key, hash->keylen)) < 0)
 		return NULL;
 		
 	ptr = &hash->table[hash_value];
@@ -140,7 +144,7 @@ search_hash (struct hash * hash, void * key)
 	pthread_mutex_lock (&hash->mutex[hash_value]);	
 
 	for (ptr = ptr->next; ptr != NULL; ptr = ptr->next) {
-		if (compare_key (key, ptr->key) == 0) {
+		if (compare_key (key, ptr->key, hash->keylen) == 0) {
 			pthread_mutex_unlock (&hash->mutex[hash_value]);	
 			return ptr->data;
 		}

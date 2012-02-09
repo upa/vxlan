@@ -4,11 +4,10 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-#define HASH_TABLE_SIZE 64
-#define HASH_KEY_LEN 	6	/* Byte */
+#define HASH_TABLE_SIZE 256
 
 struct hashnode {
-	u_int8_t key[HASH_KEY_LEN];
+	u_int8_t * key;
 	void * data;
 	struct hashnode * next;
 };
@@ -16,11 +15,12 @@ struct hashnode {
 struct hash {
 	struct hashnode table[HASH_TABLE_SIZE];	/* sentinel */
 	pthread_mutex_t mutex[HASH_TABLE_SIZE];
+	int keylen;	/* byte */
 };
 
 
-void init_hash (struct hash * hash);
-int  insert_hash (struct hash * hash, void * data, void * key);
+void init_hash (struct hash * hash, int keylen);
+int insert_hash (struct hash * hash, void * data, void * key);
 void * delete_hash (struct hash * hash, void * key);
 void * search_hash (struct hash * hash, void * key);
 
