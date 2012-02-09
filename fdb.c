@@ -102,22 +102,24 @@ fdb_decrease_ttl_thread (void * param)
 
 	struct hash * hash = &fdb->fdb;
 
-	for (n = 0; n < HASH_TABLE_SIZE; n++) {
-		pthread_mutex_lock (&hash->mutex[n]);
-		prev = &hash->table[n];
-		for (ptr = hash->table[n].next; ptr != NULL; ptr = ptr->next) {
-			entry = (struct fdb_entry *) ptr->data;
-			entry->ttl--;
-			if (entry->ttl <= 0) {
-				prev->next = ptr->next;
-				free (ptr);
-				free (entry);
-				ptr = prev;
-			} else
-				prev = ptr;
-			
+	while (1) {
+		for (n = 0; n < HASH_TABLE_SIZE; n++) {
+			pthread_mutex_lock (&hash->mutex[n]);
+			prev = &hash->table[n];
+			for (ptr = hash->table[n].next; ptr != NULL; ptr = ptr->next) {
+				entry = (struct fdb_entry *) ptr->data;
+				entry->ttl--;
+				if (entry->ttl <= 0) {
+					prev->next = ptr->next;
+					free (ptr);
+					free (entry);
+					ptr = prev;
+				} else
+					prev = ptr;
+
+			}
+			pthread_mutex_unlock (&hash->mutex[n]);
 		}
-		pthread_mutex_unlock (&hash->mutex[n]);
 		sleep (FDB_DECREASE_TTL_INTERVAL);
 	}
 
