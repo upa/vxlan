@@ -12,6 +12,16 @@ void process_fdb_etherflame_from_vxlan (struct ether_header * ether,
 void send_etherflame_from_vxlan_to_local (struct ether_header * ether, int len);
 void send_etherflame_from_local_to_vxlan (struct ether_header * ether, int len);
 
+void set_ipv4_multicast_join (int socket, struct in_addr maddr);
+void set_ipv4_multicast_iface (int socket, struct in_addr ifaddr);
+void set_ipv4_multicast_loop (int socket, int stat);
+void set_ipv4_multicast_ttl (int socket, int ttl);
+
+void set_ipv6_multicast_join (int socket, struct in6_addr maddr);
+void set_ipv6_multicast_iface (int socket, unsigned int ifindex);
+void set_ipv6_multicast_loop (int socket, int stat);
+void set_ipv6_multicast_ttl (int socket, int ttl);
+
 
 #define CHECK_VNI(v1, v2)		\
 	(v1[0] != v2[0]) ? -1 :		\

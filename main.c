@@ -45,7 +45,7 @@ main (int argc, char * argv[])
         int subn = 0;
 	u_int32_t vni32;
 
-	extern int opterr;	
+	extern int opterr;
 	extern char * optarg;
 	struct addrinfo hints, *res;
 
@@ -142,73 +142,21 @@ main (int argc, char * argv[])
 
 	freeaddrinfo (res);
 
-	int off = 0, ttl = 255;
-	struct ip_mreq mreq;
-	struct ipv6_mreq mreq6;
-	
 	switch (((struct sockaddr *)&vxlan.mcast_addr)->sa_family) {
 	case AF_INET :
-		mreq.imr_multiaddr = ((struct sockaddr_in *)&vxlan.mcast_addr)->sin_addr;
-		mreq.imr_interface = getifaddr (vxlan_if_name);
-
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IP, 
-				IP_ADD_MEMBERSHIP,
-				(char *)&mreq, sizeof (mreq)) < 0)
-			err (EXIT_FAILURE, "can not join multicast %s", mcast_caddr);
-
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IP,
-				IP_MULTICAST_IF,
-				(char *)&mreq.imr_interface, 
-				sizeof (mreq.imr_interface)) < 0)
-			err (EXIT_FAILURE, "can not set multicast interface");
-
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IP,
-				IP_MULTICAST_LOOP,
-				(char *)&off, sizeof (off)) < 0)
-			err (EXIT_FAILURE, "can not set off multicast loop");
-
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IP,
-				IP_MULTICAST_TTL,
-				(char *)&ttl, sizeof (ttl)) < 0)
-			err (EXIT_FAILURE, "can not set ttl");
-
+		set_ipv4_multicast_join (vxlan.udp_sock, 
+					 ((struct sockaddr_in *)&vxlan.mcast_addr)->sin_addr);
+		set_ipv4_multicast_iface (vxlan.udp_sock, getifaddr (vxlan_if_name));
+		set_ipv4_multicast_loop (vxlan.udp_sock, 0);
+		set_ipv4_multicast_ttl (vxlan.udp_sock, 255);
 		break;
 
 	case AF_INET6 :
-		mreq6.ipv6mr_multiaddr = ((struct sockaddr_in6 *)&vxlan.mcast_addr)->sin6_addr;
-		mreq6.ipv6mr_interface = if_nametoindex (vxlan_if_name);
-
-		if (mreq6.ipv6mr_interface < 0)
-			err (EXIT_FAILURE, "%s does not exist", vxlan_if_name);
-
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IPV6,
-				IPV6_ADD_MEMBERSHIP,
-				(char *)&mreq6, sizeof (mreq6)) < 0)
-			err (EXIT_FAILURE, "can not join multicast %s", mcast_caddr);
-		
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IPV6,
-				IPV6_MULTICAST_IF,
-				(char *)&mreq6.ipv6mr_interface, 
-				sizeof (mreq6.ipv6mr_interface)) < 0)
-			err (EXIT_FAILURE, "can not join multicast %s", mcast_caddr);
-
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IPV6,
-				IPV6_MULTICAST_LOOP,
-				(char *)&off, sizeof (off)) < 0)
-			err (EXIT_FAILURE, "can not set off multicast loop");
-
-		if (setsockopt (vxlan.udp_sock,
-				IPPROTO_IPV6,
-				IPV6_MULTICAST_HOPS,
-				(char *)&ttl, sizeof (ttl)) < 0)
-			err (EXIT_FAILURE, "can not set ttl");
+		set_ipv6_multicast_join (vxlan.udp_sock,
+					 ((struct sockaddr_in6 *)&vxlan.mcast_addr)->sin6_addr);
+		set_ipv6_multicast_iface (vxlan.udp_sock, if_nametoindex (vxlan_if_name));
+		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
+		set_ipv6_multicast_ttl (vxlan.udp_sock, 255);
 		break;
 
 	default :
