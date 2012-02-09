@@ -1,5 +1,8 @@
 *test*
 vxlan
 *.o
-.deps
-autom4te.cache
+.deps/
+autom4te.cache/
+m.sh
+*.log
+missing
