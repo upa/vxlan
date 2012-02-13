@@ -83,6 +83,7 @@ main (int argc, char * argv[])
 				return -1;
 			}
 			subn = atoi(optarg);
+			vxlan.subnum = subn;
 			
 			break;
 
@@ -117,13 +118,14 @@ main (int argc, char * argv[])
 		err (EXIT_FAILURE, "can not create socket");
 
 	memcpy (&vxlan.mcast_addr, res->ai_addr, res->ai_addrlen);
-
+	
 	freeaddrinfo (res);
 
 	switch (((struct sockaddr *)&vxlan.mcast_addr)->sa_family) {
 	case AF_INET :
 		set_ipv4_multicast_join_and_iface (vxlan.udp_sock, 
-						   ((struct sockaddr_in *)&vxlan.mcast_addr)->sin_addr,
+						   ((struct sockaddr_in *)
+						    &vxlan.mcast_addr)->sin_addr,
 						   vxlan_if_name);
 		set_ipv4_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv4_multicast_ttl (vxlan.udp_sock, 255);
@@ -132,7 +134,8 @@ main (int argc, char * argv[])
 
 	case AF_INET6 :
 		set_ipv6_multicast_join_and_iface (vxlan.udp_sock,
-						   ((struct sockaddr_in6 *)&vxlan.mcast_addr)->sin6_addr,
+						   ((struct sockaddr_in6 *)
+						    &vxlan.mcast_addr)->sin6_addr,
 						   vxlan_if_name);
 		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv6_multicast_ttl (vxlan.udp_sock, 255);
@@ -225,7 +228,8 @@ process_vxlan (void)
 			
 		ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
 		process_fdb_etherflame_from_vxlan (vins, ether, &sa_str);
-		send_etherflame_from_vxlan_to_local (vins, ether, len - sizeof (struct vxlan_hdr));
+		send_etherflame_from_vxlan_to_local (vins, ether, 
+						     len - sizeof (struct vxlan_hdr));
 	}
 
 	return;
@@ -237,7 +241,10 @@ debug_print_vhdr (struct vxlan_hdr * vhdr)
 {
 	printf ("vxlan header\n");
 	printf ("Flag : %u\n", vhdr->vxlan_flags);
-	printf ("VNI  : %u%u%u\n", vhdr->vxlan_vni[0], vhdr->vxlan_vni[1], vhdr->vxlan_vni[2]);
+	printf ("VNI  : %u%u%u\n", 
+		vhdr->vxlan_vni[0], 
+		vhdr->vxlan_vni[1], 
+		vhdr->vxlan_vni[2]);
 	printf ("\n");
 
 	return;
