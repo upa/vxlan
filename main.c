@@ -31,11 +31,13 @@ usage (void)
 {
 	printf ("Usage\n");
 	printf ("\n");
-	printf ("   vxlan -m [MCASTADDRESS] -i [INTERFACE] -n [NUMBER] [-d] VNI1(HEX) VNI2 VNI3...\n");
+	printf ("   vxlan -m [MCASTADDR] -i [INTERFACE] -n [NUMBER] [-d] ");
+	printf ("VNI1(HEX) VNI2 VNI3 ...\n");
 	printf ("\n");
 	printf ("\t -m : Multicast Address(v4/v6)\n");
 	printf ("\t -i : Multicast Interface\n");
 	printf ("\t -n : Sub Port number (<4096 default 0)\n");
+	printf ("\t -e : Print Error Massage to STDOUT\n");
 	printf ("\t -d : Daemon Mode\n");
 	printf ("\n");
 }
@@ -45,20 +47,24 @@ int
 main (int argc, char * argv[])
 {
 	int ch, n;
-	int d_flag = 0;
+	int d_flag = 0, err_flag = 0;
         int subn = 0;
 
 	extern int opterr;
 	extern char * optarg;
 	struct addrinfo hints, *res;
 
-	char mcast_caddr[40];
-	char vxlan_if_name[IFNAMSIZ];
+	char mcast_caddr[40] = "";
+	char vxlan_if_name[IFNAMSIZ] = "";
 	
 	memset (&vxlan, 0, sizeof (vxlan));
 
-	while ((ch = getopt (argc, argv, "m:i:n:d")) != -1) {
+	while ((ch = getopt (argc, argv, "em:i:n:d")) != -1) {
 		switch (ch) {
+		case 'e' :
+			err_flag = 1;
+			break;
+			
 		case 'm' :
 			if (optarg == NULL) {
 				usage ();
@@ -156,13 +162,15 @@ main (int argc, char * argv[])
 		usage ();
 		error_quit ("Please Set VNI(s)");
 	}
-	vxlan.vins = (struct vxlan_instance **) malloc (sizeof (struct vxlan_instance) * vxlan.vins_num);
+	vxlan.vins = (struct vxlan_instance **) 
+		malloc (sizeof (struct vxlan_instance) * vxlan.vins_num);
 	
 	u_int8_t vnibuf[VXLAN_VNISIZE];
 
 	for (n = 0; n < vxlan.vins_num; n++) {
 		strtovni (argv[optind + n], vnibuf);
-		vxlan.vins[n] = (struct vxlan_instance *) malloc (sizeof (struct vxlan_instance *));
+		vxlan.vins[n] = (struct vxlan_instance *) 
+			malloc (sizeof (struct vxlan_instance *));
 		vxlan.vins[n] = create_vxlan_instance (vnibuf);
 		insert_hash (&vxlan.vins_tuple, vxlan.vins[n], vnibuf);
 	}
@@ -177,7 +185,8 @@ main (int argc, char * argv[])
 	}
 
         /* Enable syslog */
-        error_enable_syslog();
+	if (!err_flag) 
+		error_enable_syslog();
 
 	process_vxlan ();
 

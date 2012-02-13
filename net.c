@@ -40,7 +40,8 @@ process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
 
 
 void
-send_etherflame_from_vxlan_to_local (struct vxlan_instance * vins, struct ether_header * ether, int len)
+send_etherflame_from_vxlan_to_local (struct vxlan_instance * vins, 
+				     struct ether_header * ether, int len)
 {
 	
 	if (write (vins->tap_sock, ether, len) < 0) {
@@ -51,7 +52,8 @@ send_etherflame_from_vxlan_to_local (struct vxlan_instance * vins, struct ether_
 }
 
 void
-send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins, struct ether_header * ether, int len)
+send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins, 
+				     struct ether_header * ether, int len)
 {
 	struct vxlan_hdr vhdr;
 	struct fdb_entry * entry;
@@ -99,7 +101,7 @@ getifaddr (char * dev)
 	strncpy (ifr.ifr_name, dev, IFNAMSIZ - 1);
 
 	if (ioctl (fd, SIOCGIFADDR, &ifr) < 0)
-		err (EXIT_FAILURE, "can not get interface %s info", dev);
+		err (EXIT_FAILURE, "can not get interface \"%s\" info", dev);
 
 	close (fd);
 

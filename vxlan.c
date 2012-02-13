@@ -88,10 +88,16 @@ process_vxlan_instance (void * param)
 
 	vins = (struct vxlan_instance *) param;
 	
+#ifdef DEBUG
+	printf ("vxlan instance\n");
+	printf ("IFNAME : %s\n", vins->vxlan_tap_name);
+	printf ("SOCKET : %d\n", vins->tap_sock);
+#endif
+
 	while (1) {
 		FD_ZERO (&fds);
 		FD_SET (vins->tap_sock, &fds);
-		
+
 		if (select (vins->tap_sock + 1, &fds, NULL, NULL, NULL) < 0)
 			err (EXIT_FAILURE, "select failed : %s", vins->vxlan_tap_name);
 
