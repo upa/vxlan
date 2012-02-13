@@ -56,6 +56,7 @@ main (int argc, char * argv[])
 
 	char mcast_caddr[40] = "";
 	char vxlan_if_name[IFNAMSIZ] = "";
+	u_int8_t vnibuf[VXLAN_VNISIZE];
 	
 	memset (&vxlan, 0, sizeof (vxlan));
 
@@ -134,7 +135,7 @@ main (int argc, char * argv[])
 						    &vxlan.mcast_addr)->sin_addr,
 						   vxlan_if_name);
 		set_ipv4_multicast_loop (vxlan.udp_sock, 0);
-		set_ipv4_multicast_ttl (vxlan.udp_sock, 255);
+		set_ipv4_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
 		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
 		break;
 
@@ -144,7 +145,7 @@ main (int argc, char * argv[])
 						    &vxlan.mcast_addr)->sin6_addr,
 						   vxlan_if_name);
 		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
-		set_ipv6_multicast_ttl (vxlan.udp_sock, 255);
+		set_ipv6_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
 		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
 		break;
 
@@ -157,15 +158,15 @@ main (int argc, char * argv[])
 
 	/* Create vxlan tap interface instance(s) */
 
-	init_hash (&vxlan.vins_tuple, 3);
+	init_hash (&vxlan.vins_tuple, VXLAN_VNISIZE);
+
 	if ((vxlan.vins_num = argc - optind) < 1) {
 		usage ();
 		error_quit ("Please Set VNI(s)");
 	}
+
 	vxlan.vins = (struct vxlan_instance **) 
 		malloc (sizeof (struct vxlan_instance) * vxlan.vins_num);
-	
-	u_int8_t vnibuf[VXLAN_VNISIZE];
 
 	for (n = 0; n < vxlan.vins_num; n++) {
 		strtovni (argv[optind + n], vnibuf);
@@ -173,20 +174,18 @@ main (int argc, char * argv[])
 			malloc (sizeof (struct vxlan_instance *));
 		vxlan.vins[n] = create_vxlan_instance (vnibuf);
 		insert_hash (&vxlan.vins_tuple, vxlan.vins[n], vnibuf);
-	}
-
-	for (n = 0; n < vxlan.vins_num; n++) 
 		init_vxlan_instance (vxlan.vins[n]);
-
-
-	if (d_flag > 0) {
-		if (daemon (0, 0) < 0)
-			err (EXIT_FAILURE, "failed to run as a daemon");
 	}
+
 
         /* Enable syslog */
 	if (!err_flag) 
 		error_enable_syslog();
+
+	if (d_flag > 0) {
+		if (daemon (0, 1) < 0)
+			err (EXIT_FAILURE, "failed to run as a daemon");
+	}
 
 	process_vxlan ();
 
