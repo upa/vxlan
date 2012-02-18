@@ -110,11 +110,11 @@ main (int argc, char * argv[])
 		}
 	}
 
+
 	if (d_flag > 0) {
-		if (daemon (0, 0) < 0)
+		if (daemon (1, 1) < 0)
 			err (EXIT_FAILURE, "failed to run as a daemon");
 	}
-
 
 	/* Create UDP Mulciast/Unicast Socket */
 
@@ -190,7 +190,7 @@ main (int argc, char * argv[])
 
 
         /* Enable syslog */
-	if (err_flag > 0) 
+	if (err_flag == 0) 
 		error_enable_syslog();
 
 
