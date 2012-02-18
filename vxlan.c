@@ -100,7 +100,7 @@ create_vxlan_instance (u_int8_t * vni, char * configfile)
 	/* create out bound access list */
 	init_hash (&vins->acl, ETH_ALEN);
 
-	if (configfile == NULL)
+	if (configfile == NULL || configfile[0] == '\0')
 		return vins;
 
 	if ((cfp = fopen (configfile, "r")) == NULL)
