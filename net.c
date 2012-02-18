@@ -62,7 +62,6 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 	
 	/* ACL Match */
 	if (search_hash (&vins->acl, ether->ether_shost) != NULL) {
-		error_warn ("acl match!\n");
 		return;
 	}
 	
