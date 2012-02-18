@@ -104,6 +104,11 @@ main (int argc, char * argv[])
 		}
 	}
 
+	if (d_flag > 0) {
+		if (daemon (0, 0) < 0)
+			err (EXIT_FAILURE, "failed to run as a daemon");
+	}
+
 
 	/* Create UDP Mulciast/Unicast Socket */
 
@@ -182,13 +187,8 @@ main (int argc, char * argv[])
 	if (!err_flag) 
 		error_enable_syslog();
 
-	if (d_flag > 0) {
-		if (daemon (0, 1) < 0)
-			err (EXIT_FAILURE, "failed to run as a daemon");
-	}
 
 	process_vxlan ();
-
 
 	/* not reached */
 
