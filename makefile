@@ -1,6 +1,6 @@
 # Makefile
 
-CC = gcc -Wall -g -DDEBUG
+CC = gcc -Wall -g 
 
 MODULES = error.o fdb.o hash.o iftap.o net.o vxlan.o
 PROGNAME = vxlan
