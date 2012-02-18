@@ -104,7 +104,7 @@ create_vxlan_instance (u_int8_t * vni, char * configfile)
 		return vins;
 
 	if ((cfp = fopen (configfile, "r")) == NULL)
-		error_exit (-1, "can not open config file \"%s\"", configfile);
+		err (EXIT_FAILURE, "can not open config file \"%s\"", configfile);
 	
 	while (fgets (buf, sizeof (buf), cfp)) {
 		if (strtoaclentry (buf, &ae) < 0) 
