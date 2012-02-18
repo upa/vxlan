@@ -1,6 +1,7 @@
 *test*
 vxlan
 *.o
+a.out
 .deps/
 autom4te.cache/
 m.sh

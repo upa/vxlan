@@ -38,6 +38,7 @@ usage (void)
 	printf ("\t -i : Multicast Interface\n");
 	printf ("\t -n : Sub Port number (<4096 default 0)\n");
 	printf ("\t -e : Print Error Massage to STDOUT\n");
+	printf ("\t -c : Access List File\n");
 	printf ("\t -d : Daemon Mode\n");
 	printf ("\n");
 }
@@ -54,13 +55,14 @@ main (int argc, char * argv[])
 	extern char * optarg;
 	struct addrinfo hints, *res;
 
+	char * configfile = NULL;
 	char mcast_caddr[40] = "";
 	char vxlan_if_name[IFNAMSIZ] = "";
 	u_int8_t vnibuf[VXLAN_VNISIZE];
 	
 	memset (&vxlan, 0, sizeof (vxlan));
 
-	while ((ch = getopt (argc, argv, "em:i:n:d")) != -1) {
+	while ((ch = getopt (argc, argv, "em:i:c:n:d")) != -1) {
 		switch (ch) {
 		case 'e' :
 			err_flag = 1;
@@ -96,6 +98,10 @@ main (int argc, char * argv[])
 
 		case 'd' :
 			d_flag = 1;
+			break;
+
+		case 'c' :
+			configfile = optarg;
 			break;
 
 		default :
@@ -177,14 +183,14 @@ main (int argc, char * argv[])
 		strtovni (argv[optind + n], vnibuf);
 		vxlan.vins[n] = (struct vxlan_instance *) 
 			malloc (sizeof (struct vxlan_instance *));
-		vxlan.vins[n] = create_vxlan_instance (vnibuf);
+		vxlan.vins[n] = create_vxlan_instance (vnibuf, configfile);
 		insert_hash (&vxlan.vins_tuple, vxlan.vins[n], vnibuf);
 		init_vxlan_instance (vxlan.vins[n]);
 	}
 
 
         /* Enable syslog */
-	if (!err_flag) 
+	if (err_flag > 0) 
 		error_enable_syslog();
 
 

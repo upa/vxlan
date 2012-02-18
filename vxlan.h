@@ -5,7 +5,7 @@
 
 void strtovni (char * str, u_int8_t * vni);
 
-struct vxlan_instance * create_vxlan_instance (u_int8_t * vni);
+struct vxlan_instance * create_vxlan_instance (u_int8_t * vni, char * configfile);
 void init_vxlan_instance (struct vxlan_instance * vins);
 
 void process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,

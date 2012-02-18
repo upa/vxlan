@@ -1,8 +1,10 @@
 #ifndef _COMMON_H_ 
 #define _COMMON_H_
 
+#include <net/if.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+
 #include "hash.h"
 
 #define VXLAN_PORT_BASE		60000
@@ -18,6 +20,7 @@ struct vxlan_instance {
 	char vxlan_tap_name[IFNAMSIZ];
 
 	struct fdb * fdb;
+	struct hash acl;
 
 	pthread_t tid;
 	int tap_sock;

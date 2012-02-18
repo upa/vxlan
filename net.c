@@ -60,6 +60,12 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 	struct msghdr mhdr;
 	struct iovec iov[2];
 	
+	/* ACL Match */
+	if (search_hash (&vins->acl, ether->ether_shost) != NULL) {
+		error_warn ("acl match!\n");
+		return;
+	}
+	
 	memset (&vhdr, 0, sizeof (vhdr));
 	vhdr.vxlan_flags = VXLAN_VALIDFLAG;
 	memcpy (vhdr.vxlan_vni, vins->vni, VXLAN_VNISIZE);

@@ -16,6 +16,39 @@
 void * process_vxlan_instance (void * param);
 
 
+/* access list related*/
+
+struct acl_entry {
+        u_int8_t mac[ETH_ALEN];
+        u_int8_t vni[VXLAN_VNISIZE];
+};
+
+int
+strtoaclentry (char * str, struct acl_entry * e)
+{
+        char cvni[16];
+        int mac[ETH_ALEN];
+
+
+        if (sscanf (str, "%s %x:%x:%x:%x:%x:%x",
+                    cvni, &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) < 7) {
+                return -1;
+        }
+
+        struct acl_entry entry = {
+                { mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] },
+                {0, 0, 0},
+        };
+
+        strtovni (cvni, entry.vni);
+
+        memcpy (e, &entry, sizeof (entry));
+
+        return 1;
+}
+
+
+
 void
 strtovni (char * str, u_int8_t * vni)
 {
@@ -40,12 +73,16 @@ strtovni (char * str, u_int8_t * vni)
 
 
 struct vxlan_instance * 
-create_vxlan_instance (u_int8_t * vni)
+create_vxlan_instance (u_int8_t * vni, char * configfile)
 {
+	FILE * cfp;
 	char cbuf[16];
+	char buf[1024];
 	u_int32_t vni32;
 	struct vxlan_instance * vins;
+	struct acl_entry ae, * e;
 
+	/* create socket and fdb */
 	vins = (struct vxlan_instance *) malloc (sizeof (struct vxlan_instance));
 	memset (vins, 0, sizeof (struct vxlan_instance));
 	memcpy (vins->vni, vni, VXLAN_VNISIZE);
@@ -58,6 +95,30 @@ create_vxlan_instance (u_int8_t * vni)
 
 	vins->fdb = init_fdb ();
 	vins->tap_sock = tap_alloc (vins->vxlan_tap_name);
+	
+
+	/* create out bound access list */
+	init_hash (&vins->acl, ETH_ALEN);
+
+	if (configfile == NULL)
+		return vins;
+
+	if ((cfp = fopen (configfile, "r")) == NULL)
+		error_exit (-1, "can not open config file \"%s\"", configfile);
+	
+	while (fgets (buf, sizeof (buf), cfp)) {
+		if (strtoaclentry (buf, &ae) < 0) 
+			continue;
+		
+		if (CHECK_VNI (vins->vni, ae.vni) < 0)
+			continue;
+
+		e = (struct acl_entry *) malloc (sizeof (struct acl_entry));
+		memcpy (e, &ae, sizeof (ae));
+		insert_hash (&vins->acl, e, e->mac);
+	}
+
+	fclose (cfp);
 	
 	return vins;
 }
