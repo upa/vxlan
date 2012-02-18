@@ -55,7 +55,7 @@ main (int argc, char * argv[])
 	extern char * optarg;
 	struct addrinfo hints, *res;
 
-	char * configfile = NULL;
+	char configfile[48];
 	char mcast_caddr[40] = "";
 	char vxlan_if_name[IFNAMSIZ] = "";
 	u_int8_t vnibuf[VXLAN_VNISIZE];
@@ -101,7 +101,7 @@ main (int argc, char * argv[])
 			break;
 
 		case 'c' :
-			configfile = optarg;
+			strncpy (configfile, optarg, sizeof (configfile));
 			break;
 
 		default :
