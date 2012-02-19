@@ -7,12 +7,49 @@
 #include <sys/socket.h>
 #include <sys/ioctl.h>
 #include <arpa/inet.h>
+#include <netinet/ip6.h>
+#include <netinet/icmp6.h>
 #include <linux/if_ether.h>
 
 #include "net.h"
 #include "fdb.h"
 #include "error.h"
 
+
+struct in6_addr *
+is_ip6_ns (struct ether_header * ether)
+{
+	struct ip6_hdr * ip6_hdr;
+	struct nd_neighbor_solicit * nd_ns;
+
+	if (ether->ether_type != ETHERTYPE_IPV6)
+		return NULL;
+	
+	ip6_hdr = (struct ip6_hdr *) (ether + 1);
+	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
+		return NULL;
+	
+	nd_ns = (struct nd_neighbor_solicit *) (ip6_hdr + 1);
+	if (nd_ns->nd_ns_type != ND_NEIGHBOR_SOLICIT)
+		return NULL;
+
+	return &nd_ns->nd_ns_target;
+}
+
+struct in_addr *
+is_ip4_arp (struct ether_header * ether)
+{
+	struct ether_arp * arp;
+
+	if (ether->ether_type != ETHERTYPE_ARP)
+		return NULL;
+	
+	arp = (struct ether_arp *) (ether + 1);
+	if (arp->arp_op != ARPOP_REQUEST)
+		return NULL;
+
+	return (struct in_addr *) (arp->arp_tpa);
+}
 
 void
 process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
@@ -55,16 +92,28 @@ void
 send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins, 
 				     struct ether_header * ether, int len)
 {
+	struct in_addr * ip4;
+	struct in6_addr * ip6;
 	struct vxlan_hdr vhdr;
 	struct fdb_entry * entry;
 	struct msghdr mhdr;
 	struct iovec iov[2];
 	
 	/* ACL Match */
-	if (search_hash (&vins->acl, ether->ether_shost) != NULL) {
+	if (search_hash (&vins->acl_mac, ether->ether_shost) != NULL) 
 		return;
+
+	if ((ip4 = is_ip4_arp (ether)) != NULL) {
+		if (search_hash (&vins->acl_ip4, ip4) != NULL)
+			return;
 	}
-	
+
+	if ((ip6 = is_ip6_ns (ether)) != NULL) {
+		if (search_hash (&vins->acl_ip6, ip6) != NULL)
+			return;
+	}
+
+	/* Forwarding */
 	memset (&vhdr, 0, sizeof (vhdr));
 	vhdr.vxlan_flags = VXLAN_VALIDFLAG;
 	memcpy (vhdr.vxlan_vni, vins->vni, VXLAN_VNISIZE);

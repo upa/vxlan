@@ -60,4 +60,7 @@ void bind_ipv6_inaddrany (int socket, int port);
 	(in61.s6_addr32[3] != in62.s6_addr32[3]) ? -1 : 1	\
 
 
+
+
+
 #endif /* _NET_H_ */

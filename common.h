@@ -20,7 +20,9 @@ struct vxlan_instance {
 	char vxlan_tap_name[IFNAMSIZ];
 
 	struct fdb * fdb;
-	struct hash acl;
+	struct hash acl_mac;
+	struct hash acl_ip4;
+	struct hash acl_ip6;
 
 	pthread_t tid;
 	int tap_sock;

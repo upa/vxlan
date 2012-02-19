@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <sys/select.h>
 #include <net/if.h>
+#include <arpa/inet.h>
 
 #include "net.h"
 #include "fdb.h"
@@ -18,33 +19,77 @@ void * process_vxlan_instance (void * param);
 
 /* access list related*/
 
+#define ACL_TYPE_MAC	0 
+#define ACL_TYPE_IP4	1
+#define ACL_TYPE_IP6	2
+
+
 struct acl_entry {
-        u_int8_t mac[ETH_ALEN];
+	int type;
         u_int8_t vni[VXLAN_VNISIZE];
+
+	union {
+		u_int8_t mac[ETH_ALEN];
+		struct in_addr addr4;
+		struct in6_addr addr6;
+	} term;
 };
+#define term_mac	term.mac
+#define term_ip4	term.addr4
+#define term_ip6	term.addr6
+
 
 int
 strtoaclentry (char * str, struct acl_entry * e)
 {
+	char type[16];
         char cvni[16];
+	char addr[48];
         int mac[ETH_ALEN];
+        struct acl_entry entry;
+	
+	if (sscanf (str, "%s %s %s", type, cvni, addr) < 3)
+		return -1;
 
-
-        if (sscanf (str, "%s %x:%x:%x:%x:%x:%x",
-                    cvni, &mac[0], &mac[1], &mac[2], &mac[3], &mac[4], &mac[5]) < 7) {
-                return -1;
-        }
-
-        struct acl_entry entry = {
-                { mac[0], mac[1], mac[2], mac[3], mac[4], mac[5] },
-                {0, 0, 0},
-        };
+	if (type[0] == '#' || type[0] == ' ')	
+		return -1;
 
         strtovni (cvni, entry.vni);
 
-        memcpy (e, &entry, sizeof (entry));
+	if (strncmp (type, "mac", 3) == 0) {
+		if (sscanf (addr, "%x:%x:%x:%x:%x:%x", &mac[0], &mac[1], 
+			    &mac[2], &mac[3], &mac[4], &mac[5]) < 6)
+			return -1;
 
-        return 1;
+		entry.type = ACL_TYPE_MAC;
+		entry.term_mac[0] = mac[0];
+		entry.term_mac[1] = mac[1];
+		entry.term_mac[2] = mac[2];
+		entry.term_mac[3] = mac[3];
+		entry.term_mac[4] = mac[4];
+		entry.term_mac[5] = mac[5];
+		
+		memcpy (e, &entry, sizeof (entry));
+		return ACL_TYPE_MAC;
+
+	} else if (strncmp (type, "ns", 2) == 0) {
+		entry.type = ACL_TYPE_IP6;
+		if (inet_pton (AF_INET6, addr, &entry.term_ip6) < 1)
+			return -1;
+
+		memcpy (e, &entry, sizeof (entry));
+		return ACL_TYPE_IP6;
+
+	} else if (strncmp (type, "arp", 3) == 0) {
+		entry.type = ACL_TYPE_IP4;
+		if (inet_pton (AF_INET, addr, &entry.term_ip4) < 1)
+			return -1;
+
+		memcpy (e, &entry, sizeof (entry));
+		return ACL_TYPE_IP4;
+	}
+		
+	return -1;
 }
 
 
@@ -75,9 +120,10 @@ strtovni (char * str, u_int8_t * vni)
 struct vxlan_instance * 
 create_vxlan_instance (u_int8_t * vni, char * configfile)
 {
-	FILE * cfp;
+	int type;
 	char cbuf[16];
 	char buf[1024];
+	FILE * cfp;
 	u_int32_t vni32;
 	struct vxlan_instance * vins;
 	struct acl_entry ae, * e;
@@ -97,8 +143,10 @@ create_vxlan_instance (u_int8_t * vni, char * configfile)
 	vins->tap_sock = tap_alloc (vins->vxlan_tap_name);
 	
 
-	/* create out bound access list */
-	init_hash (&vins->acl, ETH_ALEN);
+	/* create out bound MAC/ARP/ND access list */
+	init_hash (&vins->acl_mac, ETH_ALEN);
+	init_hash (&vins->acl_ip4, sizeof (struct in_addr));
+	init_hash (&vins->acl_ip6, sizeof (struct in6_addr));
 
 	if (configfile == NULL || configfile[0] == '\0')
 		return vins;
@@ -107,15 +155,30 @@ create_vxlan_instance (u_int8_t * vni, char * configfile)
 		err (EXIT_FAILURE, "can not open config file \"%s\"", configfile);
 	
 	while (fgets (buf, sizeof (buf), cfp)) {
-		if (strtoaclentry (buf, &ae) < 0) 
+		if ((type = strtoaclentry (buf, &ae)) < 0) 
 			continue;
 		
 		if (CHECK_VNI (vins->vni, ae.vni) < 0)
 			continue;
 
-		e = (struct acl_entry *) malloc (sizeof (struct acl_entry));
+		e = (struct acl_entry *) malloc (sizeof (ae));
 		memcpy (e, &ae, sizeof (ae));
-		insert_hash (&vins->acl, e, e->mac);
+
+		switch (type) {
+		case ACL_TYPE_MAC :
+			insert_hash (&vins->acl_mac, e, &e->term_mac);
+			printf ("insert mac\n");
+			break;
+		case ACL_TYPE_IP4 :
+			insert_hash (&vins->acl_ip4, e, &e->term_ip4);
+			break;
+		case ACL_TYPE_IP6 :
+			insert_hash (&vins->acl_ip6, e, &e->term_ip6);
+			printf ("insert ipv6\n");
+			break;
+		default :
+			continue;
+		}
 	}
 
 	fclose (cfp);
