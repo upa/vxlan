@@ -112,7 +112,7 @@ main (int argc, char * argv[])
 
 
 	if (d_flag > 0) {
-		if (daemon (1, 1) < 0)
+		if (daemon (1, err_flag) < 0)
 			err (EXIT_FAILURE, "failed to run as a daemon");
 	}
 
