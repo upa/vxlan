@@ -19,6 +19,8 @@ void send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 
 
 struct in_addr getifaddr (char * dev);
+struct in6_addr getifaddr6 (char * dev);
+int ifaddr (int ai_family, char * dev, void * dest);
 
 void set_ipv4_multicast_join_and_iface (int socket, struct in_addr maddr, char * ifname);
 void set_ipv6_multicast_join_and_iface (int socket, struct in6_addr maddr, char * ifname);
@@ -28,7 +30,9 @@ void set_ipv6_multicast_ttl (int socket, int ttl);
 void set_ipv4_multicast_ttl (int socket, int ttl);
 void bind_ipv4_inaddrany (int socket, int port);
 void bind_ipv6_inaddrany (int socket, int port);
+void bind_ipv6_addr (int socket, struct in6_addr addr6, int port);
 
+void set_ipv6_pktinfo (int socket, int stat);
 
 #define CHECK_VNI(v1, v2)		\
 	(v1[0] != v2[0]) ? -1 :		\

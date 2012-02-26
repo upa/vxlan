@@ -10,6 +10,7 @@
 #include <netinet/ip6.h>
 #include <netinet/icmp6.h>
 #include <linux/if_ether.h>
+#include <ifaddrs.h>
 
 #include "net.h"
 #include "fdb.h"
@@ -125,9 +126,8 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 
 	mhdr.msg_iov = iov;
 	mhdr.msg_iovlen = 2;
-	mhdr.msg_controllen = 0;
 
-	if ((entry = fdb_search_entry (vins->fdb, (u_int8_t *)ether->ether_dhost)) == NULL) {
+	if ((entry = fdb_search_entry (vins->fdb, ether->ether_dhost)) == NULL) {
 		mhdr.msg_name = &vxlan.mcast_addr;
 		mhdr.msg_namelen = sizeof (vxlan.mcast_addr);
 	} else {
@@ -162,6 +162,29 @@ getifaddr (char * dev)
 	addr = (struct sockaddr_in *) &(ifr.ifr_addr);
 
 	return addr->sin_addr;
+}
+
+struct in6_addr
+getifaddr6 (char * dev)
+{
+        int fd;
+        struct ifreq ifr;
+        struct sockaddr_in6 * addr6;
+
+        fd = socket (AF_INET, SOCK_DGRAM, 0);
+
+        memset (&ifr, 0, sizeof (ifr));
+        strncpy (ifr.ifr_name, dev, IFNAMSIZ - 1);
+        ifr.ifr_addr.sa_family = AF_INET6;
+
+        if (ioctl (fd, SIOCGIFADDR, &ifr) < 0)
+                err (EXIT_FAILURE, "can not get interface \"%s\" info", dev);
+
+        close (fd);
+
+        addr6 = (struct sockaddr_in6 *) &(ifr.ifr_addr);
+
+        return addr6->sin6_addr;
 }
 
 void
@@ -304,4 +327,87 @@ bind_ipv6_inaddrany (int socket, int port)
 		err (EXIT_FAILURE, "can not bind");
 
 	return;
+}
+
+void
+bind_ipv6_addr (int socket, struct in6_addr addr6, int port)
+{
+	struct sockaddr_in6 saddr6;
+	
+	memset (&saddr6, 0, sizeof (saddr6));
+	saddr6.sin6_family = AF_INET6;
+	saddr6.sin6_port = htons (port);
+	saddr6.sin6_addr = addr6;
+	
+	if (bind (socket, (struct sockaddr *)&saddr6, sizeof (saddr6)) != 0) {
+		err (EXIT_FAILURE, "can not bind IPv6 addr");
+	}
+	return;
+}
+
+void
+set_ipv6_pktinfo (int socket, int stat)
+{
+	if (setsockopt (socket,
+			IPPROTO_IPV6, 
+			IPV6_PKTINFO, 
+			&stat, 
+			sizeof (stat)) < 0)
+		err (EXIT_FAILURE, "can not set IPV6_PKTINFO");
+
+	return;
+}
+
+
+int
+ifaddr (int ai_family , char * dev, void * dest)
+{
+	struct ifaddrs * ifa;
+	struct ifaddrs * ifa_list;
+	struct sockaddr_in * saddr_in;
+	struct sockaddr_in6 * saddr_in6;
+	
+	if (getifaddrs (&ifa_list) != 0) {
+		err (EXIT_FAILURE, "getifaddrs");
+	}
+
+	for (ifa = ifa_list; ifa != NULL; ifa = ifa->ifa_next) {
+		if (strncmp (dev, ifa->ifa_name, IFNAMSIZ) != 0) 
+			continue;
+
+		if (ai_family != ifa->ifa_addr->sa_family)
+			continue;
+
+		switch (ifa->ifa_addr->sa_family) {
+		case AF_INET :
+			if (ifa->ifa_addr->sa_family != AF_INET) 
+				continue;
+
+			saddr_in = (struct sockaddr_in *)(ifa->ifa_addr);
+			memcpy (dest, 
+				&saddr_in->sin_addr,
+				sizeof (struct in_addr));
+			freeifaddrs (ifa_list);
+
+			return 1;
+
+		case AF_INET6 :
+			if (ifa->ifa_addr->sa_family != AF_INET6) 
+				continue;
+
+			if (IN6_IS_ADDR_LINKLOCAL (&(((struct sockaddr_in6 *)
+						      ifa->ifa_addr)->sin6_addr)))
+				continue;
+			saddr_in6 = (struct sockaddr_in6 *)(ifa->ifa_addr);
+			memcpy (dest, 
+				&saddr_in6->sin6_addr,
+				sizeof (struct in6_addr));
+			freeifaddrs (ifa_list);
+			return 1;
+		}
+	}
+
+
+	freeifaddrs (ifa_list);		
+	return -1;
 }

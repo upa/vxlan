@@ -9,6 +9,9 @@
 #include <arpa/inet.h>
 #include <signal.h>
 #include <netdb.h>
+#include <net/if.h>
+#include <netinet/in.h>
+
 
 #include "common.h"
 #include "error.h"
@@ -25,6 +28,7 @@ void process_vxlan (void);
 
 void debug_print_vhdr (struct vxlan_hdr * vhdr);
 void debug_print_ether (struct ether_header * ether);
+
 
 void
 usage (void)
@@ -54,12 +58,13 @@ main (int argc, char * argv[])
 	extern int opterr;
 	extern char * optarg;
 	struct addrinfo hints, *res;
+	struct in6_addr in6addr;
 
 	char configfile[48] = "";
 	char mcast_caddr[40] = "";
 	char vxlan_if_name[IFNAMSIZ] = "";
 	u_int8_t vnibuf[VXLAN_VNISIZE];
-	
+
 	memset (&vxlan, 0, sizeof (vxlan));
 
 	while ((ch = getopt (argc, argv, "em:i:c:n:d")) != -1) {
@@ -151,18 +156,22 @@ main (int argc, char * argv[])
 		break;
 
 	case AF_INET6 :
+		ifaddr (AF_INET6, vxlan_if_name, &in6addr);
+
 		set_ipv6_multicast_join_and_iface (vxlan.udp_sock,
 						   ((struct sockaddr_in6 *)
 						    &vxlan.mcast_addr)->sin6_addr,
 						   vxlan_if_name);
 		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv6_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
+		bind_ipv6_addr (vxlan.udp_sock, in6addr, vxlan.port);
+
 		break;
 
 	default :
 		error_quit ("unkown protocol family");
 	}
+
 
 	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_port = htons (vxlan.port);
 	

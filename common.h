@@ -4,6 +4,7 @@
 #include <net/if.h>
 #include <sys/types.h>
 #include <netinet/in.h>
+#include <sys/socket.h>
 
 #include "hash.h"
 
@@ -36,9 +37,9 @@ struct vxlan {
 	unsigned short port;
 	struct sockaddr_storage mcast_addr; 	/* vxlan Multicast Address */
 
-	int vins_num;
-	struct hash vins_tuple;
-	struct vxlan_instance ** vins;
+	int vins_num;			/* Num of VXLAN Instance */
+	struct hash vins_tuple;		/* VXLAN Instance hash table. key is VNI */
+	struct vxlan_instance ** vins;	/* VXLAN Instance List */
 };
 
 
