@@ -3,6 +3,7 @@
 
 #include <pthread.h>
 #include <netinet/in.h>
+#include <net/ethernet.h>
 
 #include "hash.h"
 
@@ -10,6 +11,7 @@
 
 /* key is MAC Address */
 struct fdb_entry {
+	u_int8_t mac[ETH_ALEN];
 	struct sockaddr_storage vtep_addr;
 	int ttl;
 };

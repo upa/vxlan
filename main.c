@@ -11,6 +11,7 @@
 #include <netdb.h>
 #include <net/if.h>
 #include <netinet/in.h>
+#include <syslog.h>
 
 
 #include "common.h"
@@ -200,8 +201,13 @@ main (int argc, char * argv[])
 
 
         /* Enable syslog */
-	if (err_flag == 0) 
+	if (err_flag == 0) {
+		openlog (VXLAN_LOGNAME, 
+			 LOG_PID | LOG_CONS | LOG_PERROR, 
+			 VXLAN_LOGFACILITY);
 		error_enable_syslog();
+		syslog (LOG_INFO, "vxlan start");
+	}
 
 
 	process_vxlan ();

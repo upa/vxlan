@@ -16,6 +16,10 @@
 #define VXLAN_PACKET_BUF_LEN	9216
 
 
+#define VXLAN_LOGNAME		"vxlan"
+#define VXLAN_LOGFACILITY	LOG_LOCAL7
+
+
 struct vxlan_instance {
 	u_int8_t vni[VXLAN_VNISIZE];
 	char vxlan_tap_name[IFNAMSIZ];

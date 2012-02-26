@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <pthread.h>
+#include <syslog.h>
 
 #define FDB_DECREASE_TTL_INTERVAL 1
 
@@ -45,7 +46,8 @@ fdb_add_entry (struct fdb * fdb, u_int8_t * mac, struct sockaddr_storage vtep_ad
 
 	entry->vtep_addr = vtep_addr;
 	entry->ttl = fdb->fdb_max_ttl;
-	
+	memcpy (entry->mac, mac, ETH_ALEN);
+
 	return insert_hash (&fdb->fdb, entry, mac);
 }
 
@@ -115,6 +117,12 @@ fdb_decrease_ttl_thread (void * param)
 					free (ptr);
 					free (entry);
 					ptr = prev;
+					syslog (LOG_INFO, 
+						"delete entry "
+						"%02x:%02x:%02x:%02x:%02x:%02x",
+						entry->mac[0], entry->mac[1],
+						entry->mac[2], entry->mac[3],
+						entry->mac[4], entry->mac[5]);
 				} else
 					prev = ptr;
 
