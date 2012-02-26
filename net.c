@@ -23,7 +23,7 @@ is_ip6_ns (struct ether_header * ether)
 	struct ip6_hdr * ip6_hdr;
 	struct nd_neighbor_solicit * nd_ns;
 
-	if (ether->ether_type != ETHERTYPE_IPV6)
+	if (htons (ether->ether_type) != ETHERTYPE_IPV6)
 		return NULL;
 	
 	ip6_hdr = (struct ip6_hdr *) (ether + 1);
@@ -42,7 +42,7 @@ is_ip4_arp (struct ether_header * ether)
 {
 	struct ether_arp * arp;
 
-	if (ether->ether_type != ETHERTYPE_ARP)
+	if (htons (ether->ether_type) != ETHERTYPE_ARP)
 		return NULL;
 	
 	arp = (struct ether_arp *) (ether + 1);
