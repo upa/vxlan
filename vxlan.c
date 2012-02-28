@@ -141,8 +141,8 @@ create_vxlan_instance (u_int8_t * vni, char * configfile)
 	snprintf (cbuf, 16, "0x%02x%02x%02x", 
 		  vins->vni[0],vins->vni[1], vins->vni[2]);
 	vni32 = strtol (cbuf, NULL, 0);
-	snprintf (vins->vxlan_tap_name, IFNAMSIZ, "%s%X", 
-		  VXLAN_TUNNAME, vni32);
+	snprintf (vins->vxlan_tap_name, IFNAMSIZ, "%s%d-%x", 
+		  VXLAN_TUNNAME, vxlan.subnum, vni32);
 
 	vins->fdb = init_fdb ();
 	vins->tap_sock = tap_alloc (vins->vxlan_tap_name);
