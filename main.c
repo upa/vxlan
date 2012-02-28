@@ -23,7 +23,6 @@
 
 
 struct vxlan vxlan;
-unsigned short port = 0;
 
 void process_vxlan (void);
 
@@ -36,7 +35,7 @@ usage (void)
 {
 	printf ("Usage\n");
 	printf ("\n");
-	printf ("   vxlan -m [MCASTADDR] -i [INTERFACE] -n [NUMBER] [-d] ");
+	printf ("   vxlan -m [MCASTADDR] -i [INTERFACE] [-d] ");
 	printf ("VNI1(HEX) VNI2 VNI3 ...\n");
 	printf ("\n");
 	printf ("\t -m : Multicast Address(v4/v6)\n");
@@ -66,7 +65,7 @@ main (int argc, char * argv[])
 
 	memset (&vxlan, 0, sizeof (vxlan));
 
-	while ((ch = getopt (argc, argv, "em:i:c:d")) != -1) {
+	while ((ch = getopt (argc, argv, "em:i:c:n:d")) != -1) {
 		switch (ch) {
 		case 'e' :
 			err_flag = 1;

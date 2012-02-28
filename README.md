@@ -12,9 +12,9 @@ ID : https://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
 	         -m : Multicast Address(v4/v6)
 	         -i : Multicast Interface
 	         -e : Print Error Massage to STDOUT
+		 -c : ARP/ND Address Filter Configuration
 	         -d : Daemon Mode
 
 
 hogelan creates tap interface each VNI.
-
-name of tap interface is vxlan[VNI].
+tap interface is named vxlan[VNI].
