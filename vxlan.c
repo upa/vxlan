@@ -7,6 +7,7 @@
 #include <sys/select.h>
 #include <net/if.h>
 #include <arpa/inet.h>
+#include <syslog.h>
 
 #include "net.h"
 #include "fdb.h"
@@ -215,6 +216,33 @@ init_vxlan_instance (struct vxlan_instance * vins)
 	return;
 }
 
+void
+process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
+                                   struct ether_header * ether, 
+                                   struct sockaddr_storage * vtep_addr)
+{
+        struct fdb_entry * entry;
+        
+        entry = fdb_search_entry (vins->fdb, (u_int8_t *) ether->ether_shost);
+
+        if (entry == NULL) {
+                fdb_add_entry (vins->fdb, (u_int8_t *) ether->ether_shost, *vtep_addr);
+                syslog (LOG_INFO, "add entry %02x:%02x:%02x:%02x:%02x:%02x",
+                        ether->ether_shost[0], ether->ether_shost[1],
+                        ether->ether_shost[2], ether->ether_shost[3],
+                        ether->ether_shost[4], ether->ether_shost[5]);
+        }
+        else {
+                if (COMPARE_SOCKADDR (vtep_addr, &entry->vtep_addr)) {
+                        entry->ttl = vins->fdb->fdb_max_ttl;
+                } else {
+                        entry->vtep_addr = * vtep_addr;
+                        entry->ttl = vins->fdb->fdb_max_ttl;
+                }
+        }
+
+        return;
+}
 
 void *
 process_vxlan_instance (void * param)
