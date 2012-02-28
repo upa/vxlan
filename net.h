@@ -40,29 +40,7 @@ void set_ipv6_pktinfo (int socket, int stat);
 	(v1[2] != v2[2]) ? -1 : 1	\
 
 
-#define COMPARE_SOCKADDR(s1, s2)					\
-	((struct sockaddr *)s1)->sa_family !=				\
-		(((struct sockaddr *)s2)->sa_family) ? -1 :		\
-		(((struct sockaddr *)s1)->sa_family == AF_INET) ?	\
-		COMPARE_SOCKADDR_IN (s1, s2) :COMPARE_SOCKADDR_IN6 (s1, s2) \
-
-#define COMPARE_SOCKADDR_IN(sa1, sa2)					\
-	COMPARE_SADDR_IN (((struct sockaddr_in *)sa1)->sin_addr,	\
-			  ((struct sockaddr_in *)sa2)->sin_addr)
-
-#define COMPARE_SOCKADDR_IN6(sa61, sa62)				\
-	COMPARE_SADDR_IN6(((struct sockaddr_in6 *)sa61)->sin6_addr,	\
-			  ((struct sockaddr_in6 *)sa62)->sin6_addr)
-
-#define COMPARE_SADDR_IN(in1, in2)		\
-	(in1.s_addr == in2.s_addr) ? 1 : -1
 	
-#define COMPARE_SADDR_IN6(in61, in62) 				\
-	(in61.s6_addr32[0] != in62.s6_addr32[0]) ? -1 :		\
-	(in61.s6_addr32[1] != in62.s6_addr32[1]) ? -1 :		\
-	(in61.s6_addr32[2] != in62.s6_addr32[2]) ? -1 :		\
-	(in61.s6_addr32[3] != in62.s6_addr32[3]) ? -1 : 1	\
-
 
 
 

@@ -14,6 +14,7 @@
 #include "error.h"
 #include "vxlan.h"
 #include "iftap.h"
+#include "sockaddrmacro.h"
 
 void * process_vxlan_instance (void * param);
 
@@ -233,7 +234,7 @@ process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
                         ether->ether_shost[4], ether->ether_shost[5]);
         }
         else {
-                if (COMPARE_SOCKADDR (vtep_addr, &entry->vtep_addr)) {
+                if (MEMCMP_SOCKADDR (*vtep_addr, entry->vtep_addr) == 0) {
                         entry->ttl = vins->fdb->fdb_max_ttl;
                 } else {
                         entry->vtep_addr = * vtep_addr;
