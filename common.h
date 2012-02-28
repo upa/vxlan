@@ -19,6 +19,8 @@
 #define VXLAN_LOGNAME		"vxlan"
 #define VXLAN_LOGFACILITY	LOG_LOCAL7
 
+#define ACL_MASK_RA	0x01
+#define ACL_MASK_RS	0x02
 
 struct vxlan_instance {
 	u_int8_t vni[VXLAN_VNISIZE];
@@ -28,6 +30,7 @@ struct vxlan_instance {
 	struct hash acl_mac;
 	struct hash acl_ip4;
 	struct hash acl_ip6;
+	u_int8_t acl_mask;
 
 	pthread_t tid;
 	int tap_sock;

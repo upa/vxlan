@@ -17,12 +17,13 @@
 void * process_vxlan_instance (void * param);
 
 
-/* access list related*/
+/* access list related type */
 
 #define ACL_TYPE_MAC	0 
 #define ACL_TYPE_IP4	1
 #define ACL_TYPE_IP6	2
-
+#define ACL_TYPE_RA	3
+#define ACL_TYPE_RS	4
 
 struct acl_entry {
 	int type;
@@ -87,6 +88,10 @@ strtoaclentry (char * str, struct acl_entry * e)
 
 		memcpy (e, &entry, sizeof (entry));
 		return ACL_TYPE_IP4;
+	} else if (strncmp (type, "ra", 2) == 0) {
+		return ACL_TYPE_RA;
+	} else if (strncmp (type, "rs", 2) == 0) {
+		return ACL_TYPE_RS;
 	}
 		
 	return -1;
@@ -143,7 +148,7 @@ create_vxlan_instance (u_int8_t * vni, char * configfile)
 	vins->tap_sock = tap_alloc (vins->vxlan_tap_name);
 	
 
-	/* create out bound MAC/ARP/ND access list */
+	/* create out bound MAC/ARP/ND/RA access list */
 	init_hash (&vins->acl_mac, ETH_ALEN);
 	init_hash (&vins->acl_ip4, sizeof (struct in_addr));
 	init_hash (&vins->acl_ip6, sizeof (struct in6_addr));
@@ -176,6 +181,15 @@ create_vxlan_instance (u_int8_t * vni, char * configfile)
 			insert_hash (&vins->acl_ip6, e, &e->term_ip6);
 			printf ("insert ipv6\n");
 			break;
+		case ACL_TYPE_RA :
+			vins->acl_mask |= ACL_MASK_RA;
+			printf ("out bound RA Block\n");
+			break;	
+		case ACL_TYPE_RS :
+			vins->acl_mask |= ACL_MASK_RS;
+			printf ("out bound RS Block\n");
+			break;
+			
 		default :
 			continue;
 		}

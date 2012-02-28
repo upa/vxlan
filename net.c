@@ -1,4 +1,5 @@
 #include <err.h>
+#include <errno.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -37,6 +38,47 @@ is_ip6_ns (struct ether_header * ether)
 
 	return &nd_ns->nd_ns_target;
 }
+
+int
+is_ip6_ra (struct ether_header * ether)
+{
+	struct ip6_hdr * ip6_hdr;
+	struct nd_router_advert * nd_ra;
+
+	if (htons (ether->ether_type) != ETHERTYPE_IPV6)
+		return -1;
+	
+	ip6_hdr = (struct ip6_hdr *) (ether + 1);  
+	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
+		return -1;
+	
+	nd_ra = (struct nd_router_advert *) (ip6_hdr + 1);
+	if (nd_ra->nd_ra_type != ND_ROUTER_ADVERT)
+		return -1;
+	
+	return 1;
+}
+
+int
+is_ip6_rs (struct ether_header * ether)
+{
+	struct ip6_hdr * ip6_hdr;
+	struct nd_router_solicit * nd_rs;
+	
+	if (htons (ether->ether_type) != ETHERTYPE_IPV6) 
+		return -1;
+	
+	ip6_hdr = (struct ip6_hdr *) (ether + 1);
+	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
+		return -1;
+			
+	nd_rs = (struct nd_router_solicit *) (ip6_hdr + 1);
+	if (nd_rs->nd_rs_type != ND_ROUTER_SOLICIT)
+		return -1;
+	
+	return 1;
+}
+
 
 struct in_addr *
 is_ip4_arp (struct ether_header * ether)
@@ -119,6 +161,16 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 			return;
 	}
 
+	if ((vins->acl_mask & ACL_MASK_RA) > 0 &&
+	    is_ip6_ra (ether) > 0) {
+		return;
+	}
+
+	if ((vins->acl_mask & ACL_MASK_RS) &&
+	    is_ip6_rs (ether) > 0) {
+		return;
+	}
+
 	/* Forwarding */
 	memset (&vhdr, 0, sizeof (vhdr));
 	vhdr.vxlan_flags = VXLAN_VALIDFLAG;
@@ -141,7 +193,7 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 	}
 	
 	if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
-		error_warn("sendmsg to multicast failed");
+		error_warn("sendmsg to multicast failed : %s", strerror (errno));
 
 	return;
 }
