@@ -7,7 +7,7 @@ ID : https://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
 
 	Usage
 
-	   vxlan -m [MCASTADDR] -i [INTERFACE] [-d] VNI1(HEX) VNI2 VNI3 ...
+	   vxlan -m [MCASTADDR] -i [INTERFACE] -n [NUMBER] [-d] VNI1(HEX) VNI2 VNI3 ...
 	
 	         -m : Multicast Address(v4/v6)
 	         -i : Multicast Interface
