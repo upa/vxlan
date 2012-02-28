@@ -104,6 +104,10 @@ main (int argc, char * argv[])
 		}
 	}
 
+	if ((vxlan.vins_num = argc - optind) < 1) {
+		usage ();
+		error_quit ("Please Set VNI(s)");
+	}
 
 	if (d_flag > 0) {
 		if (daemon (1, err_flag) < 0)
@@ -153,7 +157,6 @@ main (int argc, char * argv[])
 						   vxlan_if_name);
 		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv6_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-//		bind_ipv6_addr (vxlan.udp_sock, in6addr, vxlan.port);
 		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
 
 		break;
@@ -170,10 +173,6 @@ main (int argc, char * argv[])
 
 	init_hash (&vxlan.vins_tuple, VXLAN_VNISIZE);
 
-	if ((vxlan.vins_num = argc - optind) < 1) {
-		usage ();
-		error_quit ("Please Set VNI(s)");
-	}
 
 	vxlan.vins = (struct vxlan_instance **) 
 		malloc (sizeof (struct vxlan_instance) * vxlan.vins_num);
