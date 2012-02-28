@@ -39,7 +39,6 @@ usage (void)
 	printf ("\n");
 	printf ("\t -m : Multicast Address(v4/v6)\n");
 	printf ("\t -i : Multicast Interface\n");
-	printf ("\t -n : Sub Port number (<4096 default 0)\n");
 	printf ("\t -e : Print Error Massage to STDOUT\n");
 	printf ("\t -c : Access List File\n");
 	printf ("\t -d : Daemon Mode\n");
@@ -52,7 +51,6 @@ main (int argc, char * argv[])
 {
 	int ch, n;
 	int d_flag = 0, err_flag = 0;
-        int subn = 0;
 
 	extern int opterr;
 	extern char * optarg;
@@ -90,16 +88,6 @@ main (int argc, char * argv[])
 			
 			break;
 
-		case 'n' :
-			if ( optarg == NULL ) {
-				usage ();
-				return -1;
-			}
-			subn = atoi(optarg);
-			vxlan.subnum = subn;
-			
-			break;
-
 		case 'd' :
 			d_flag = 1;
 			break;
@@ -126,7 +114,7 @@ main (int argc, char * argv[])
 
 	/* Create UDP Mulciast/Unicast Socket */
 
-        vxlan.port = VXLAN_PORT_BASE + subn;
+        vxlan.port = VXLAN_PORT_BASE;
 
 	memset (&hints, 0, sizeof (hints));
 	hints.ai_family = AF_UNSPEC;
