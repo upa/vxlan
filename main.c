@@ -36,8 +36,7 @@ usage (void)
 {
 	printf ("Usage\n");
 	printf ("\n");
-	printf ("   vxlan -m [MCASTADDR] -i [INTERFACE] -n [NUMBER] [-d] ");
-	printf ("VNI1(HEX) VNI2 VNI3 ...\n");
+	printf ("   vxlan -m [MCASTADDR] -i [INTERFACE] [VNI] [VNI]... ");
 	printf ("\n");
 	printf ("\t -m : Multicast Address(v4/v6)\n");
 	printf ("\t -i : Multicast Interface\n");
