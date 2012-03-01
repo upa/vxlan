@@ -70,19 +70,11 @@ main (int argc, char * argv[])
 			break;
 			
 		case 'm' :
-			if (optarg == NULL) {
-				usage ();
-				return -1;
-			}
 			strncpy (mcast_caddr, optarg, sizeof (mcast_caddr));
 
 			break;
 
 		case 'i' :
-			if (optarg == NULL) {
-				usage ();
-				return -1;
-			}
 			strcpy (vxlan_if_name, optarg);
 			
 			break;
