@@ -55,7 +55,6 @@ main (int argc, char * argv[])
 	extern int opterr;
 	extern char * optarg;
 	struct addrinfo hints, *res;
-	struct in6_addr in6addr;
 
 	char configfile[48] = "";
 	char mcast_caddr[40] = "";
@@ -147,8 +146,6 @@ main (int argc, char * argv[])
 		break;
 
 	case AF_INET6 :
-		ifaddr (AF_INET6, vxlan_if_name, &in6addr);
-
 		set_ipv6_multicast_join_and_iface (vxlan.udp_sock,
 						   ((struct sockaddr_in6 *)
 						    &vxlan.mcast_addr)->sin6_addr,
