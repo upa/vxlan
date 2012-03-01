@@ -228,10 +228,16 @@ process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
 
         if (entry == NULL) {
                 fdb_add_entry (vins->fdb, (u_int8_t *) ether->ether_shost, *vtep_addr);
+
+#ifdef LOGGING_FDB_CHANE
                 syslog (LOG_INFO, "add entry %02x:%02x:%02x:%02x:%02x:%02x",
                         ether->ether_shost[0], ether->ether_shost[1],
                         ether->ether_shost[2], ether->ether_shost[3],
                         ether->ether_shost[4], ether->ether_shost[5]);
+		
+		syslog (LOG_INFO, "Add, Number of FDB entry is %d",
+			vins->fdb->fdb.count);
+#endif
         }
         else {
                 if (MEMCMP_SOCKADDR (*vtep_addr, entry->vtep_addr) == 0) {

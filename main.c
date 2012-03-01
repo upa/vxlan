@@ -188,7 +188,7 @@ main (int argc, char * argv[])
         /* Enable syslog */
 	if (err_flag == 0) {
 		openlog (VXLAN_LOGNAME, 
-			 LOG_PID | LOG_CONS | LOG_PERROR, 
+			 LOG_CONS | LOG_PERROR, 
 			 VXLAN_LOGFACILITY);
 		error_enable_syslog();
 		syslog (LOG_INFO, "vxlan start");

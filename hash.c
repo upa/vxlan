@@ -18,6 +18,7 @@ init_hash (struct hash * hash, int keylen)
 	}
 	
 	hash->keylen = keylen;
+	hash->count = 0;
 
 	return;
 }
@@ -90,6 +91,8 @@ insert_hash (struct hash * hash, void * data, void * key)
 	memcpy (node->key, key, hash->keylen);
 	prev->next = node;
 
+	hash->count++;
+
 	pthread_mutex_unlock (&hash->mutex[hash_value]);
 
 	return 1;
@@ -124,6 +127,8 @@ delete_hash (struct hash * hash, void * key)
 	data = ptr->data;
 	free (ptr->key);
 	free (ptr);
+
+	hash->count--;
 
 	pthread_mutex_unlock (&hash->mutex[hash_value]);	
 

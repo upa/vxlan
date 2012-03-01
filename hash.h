@@ -16,6 +16,7 @@ struct hash {
 	struct hashnode table[HASH_TABLE_SIZE];	/* sentinel */
 	pthread_mutex_t mutex[HASH_TABLE_SIZE];
 	int keylen;	/* byte */
+	int count;
 };
 
 

@@ -117,12 +117,16 @@ fdb_decrease_ttl_thread (void * param)
 					free (ptr);
 					free (entry);
 					ptr = prev;
+#ifdef LOGGING_FDB_CHANGE
 					syslog (LOG_INFO, 
 						"delete entry "
 						"%02x:%02x:%02x:%02x:%02x:%02x",
 						entry->mac[0], entry->mac[1],
 						entry->mac[2], entry->mac[3],
 						entry->mac[4], entry->mac[5]);
+					syslog (LOG_INFO, "Delete, Number of FDB entry is %d",
+						fdb->fdb.count);
+#endif
 				} else
 					prev = ptr;
 
