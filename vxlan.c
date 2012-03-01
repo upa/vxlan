@@ -229,7 +229,7 @@ process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
         if (entry == NULL) {
                 fdb_add_entry (vins->fdb, (u_int8_t *) ether->ether_shost, *vtep_addr);
 
-#ifdef LOGGING_FDB_CHANE
+#ifdef LOGGING_FDB_CHANGE
                 syslog (LOG_INFO, "add entry %02x:%02x:%02x:%02x:%02x:%02x",
                         ether->ether_shost[0], ether->ether_shost[1],
                         ether->ether_shost[2], ether->ether_shost[3],

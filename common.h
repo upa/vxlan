@@ -11,7 +11,6 @@
 #define VXLAN_PORT_BASE		60000
 #define VXLAN_VALIDFLAG 	0x08
 #define VXLAN_VNISIZE		3
-#define VXLAN_VNICHARSIZE	8
 #define VXLAN_MCAST_TTL		16
 #define VXLAN_TUNNAME		"vxlan"
 #define VXLAN_PACKET_BUF_LEN	9216
@@ -24,7 +23,6 @@
 #define ACL_MASK_RS	0x02
 
 struct vxlan_instance {
-	char cvni[VXLAN_VNICHARSIZE];
 	u_int8_t vni[VXLAN_VNISIZE];
 	char vxlan_tap_name[IFNAMSIZ];
 
