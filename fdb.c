@@ -117,6 +117,7 @@ fdb_decrease_ttl_thread (void * param)
 					free (ptr);
 					free (entry);
 					ptr = prev;
+					fdb->fdb.count--;
 #ifdef LOGGING_FDB_CHANGE
 					syslog (LOG_INFO, 
 						"delete entry "
