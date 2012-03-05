@@ -15,6 +15,7 @@
 
 
 #include "common.h"
+#include "sockaddrmacro.h"
 #include "error.h"
 #include "net.h"
 #include "fdb.h"
@@ -158,7 +159,9 @@ main (int argc, char * argv[])
 
 	/* Create Unicast Socket */
 
-	if (vxlan.unicast_sock = socket (AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP) < 0)
+	if ((vxlan.unicast_sock = socket (EXTRACT_FAMILY(vxlan.mcast_addr), 
+					  SOCK_DGRAM, 
+					  IPPROTO_UDP)) < 0)
 		err (EXIT_FAILURE, "can not create unicast socket");
 	
 	/* Create vxlan tap interface instance(s) */
