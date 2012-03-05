@@ -7,7 +7,7 @@
 
 #include "hash.h"
 
-#define FDB_DEFAULT_CACHE_MAX_TTL 5
+#define FDB_DEFAULT_CACHE_MAX_TTL 10
 
 /* key is MAC Address */
 struct fdb_entry {
