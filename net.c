@@ -17,7 +17,7 @@
 #include "net.h"
 #include "fdb.h"
 #include "error.h"
-
+#include "sockaddrmacro.h"
 
 struct in6_addr *
 is_ip6_ns (struct ether_header * ether)
@@ -163,6 +163,7 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 			error_warn("sendmsg to multicast failed : %s", 
 				   strerror (errno));
 	} else {
+		EXTRACT_PORT (entry->vtep_addr) = htons (VXLAN_PORT_BASE);
 		mhdr.msg_name = &entry->vtep_addr;
 		mhdr.msg_namelen = sizeof (entry->vtep_addr);
 		if (sendmsg (vxlan.unicast_sock, &mhdr, 0) < 0)
