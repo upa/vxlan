@@ -223,10 +223,11 @@ process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
                                    struct sockaddr_storage * vtep_addr)
 {
         struct fdb_entry * entry;
-        
+
         entry = fdb_search_entry (vins->fdb, (u_int8_t *) ether->ether_shost);
 
         if (entry == NULL) {
+		EXTRACT_PORT (*vtep_addr) = htons (VXLAN_PORT_BASE);
                 fdb_add_entry (vins->fdb, (u_int8_t *) ether->ether_shost, *vtep_addr);
 
 #ifdef LOGGING_FDB_CHANGE
