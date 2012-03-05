@@ -103,7 +103,7 @@ main (int argc, char * argv[])
 			err (EXIT_FAILURE, "failed to run as a daemon");
 	}
 
-	/* Create UDP Mulciast/Unicast Socket */
+	/* Create UDP Mulciast Socket */
 
         vxlan.port = VXLAN_PORT_BASE;
 
@@ -156,6 +156,11 @@ main (int argc, char * argv[])
 	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_port = htons (vxlan.port);
 	
 
+	/* Create Unicast Socket */
+
+	if (vxlan.unicast_sock = socket (AF_UNSPEC, SOCK_DGRAM, IPPROTO_UDP) < 0)
+		err (EXIT_FAILURE, "can not create unicast socket");
+	
 	/* Create vxlan tap interface instance(s) */
 
 	init_hash (&vxlan.vins_tuple, VXLAN_VNISIZE);
@@ -210,6 +215,7 @@ process_vxlan (void)
 	while (1) {
 		FD_ZERO (&fds);
 		FD_SET (vxlan.udp_sock, &fds);
+		memset (&sa_str, 0, sizeof (sa_str));
 		
 		if (select (vxlan.udp_sock + 1, &fds, NULL, NULL, NULL) < 0)
 			err (EXIT_FAILURE, "select failed");

@@ -39,6 +39,7 @@ struct vxlan_instance {
 
 struct vxlan {
 	int udp_sock;
+	int unicast_sock;
 
 	unsigned short port;
 	struct sockaddr_storage mcast_addr; 	/* vxlan Multicast Address */
