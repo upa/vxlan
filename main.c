@@ -135,7 +135,7 @@ main (int argc, char * argv[])
 						   vxlan_if_name);
 		set_ipv4_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv4_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-//		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
+		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
 		break;
 
 	case AF_INET6 :
@@ -145,7 +145,7 @@ main (int argc, char * argv[])
 						   vxlan_if_name);
 		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv6_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-//		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
+		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
 
 		break;
 
@@ -157,6 +157,7 @@ main (int argc, char * argv[])
 	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_port = htons (vxlan.port);
 	
 
+#if 0
 	/* Create Unicast Socket */
 	if ((vxlan.unicast_sock = socket (EXTRACT_FAMILY(vxlan.mcast_addr), 
 					  SOCK_DGRAM, 
@@ -169,6 +170,7 @@ main (int argc, char * argv[])
 
 	if (bind (vxlan.unicast_sock, (struct sockaddr *)&sa_str, sizeof (sa_str)) < 0)
 		err (EXIT_FAILURE, "can not bind udp socket");
+#endif
 
 
 	/* Create vxlan tap interface instance(s) */
