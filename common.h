@@ -9,6 +9,7 @@
 #include "hash.h"
 
 #define VXLAN_PORT_BASE		60000
+#define VXLAN_CPORT		"60000"
 #define VXLAN_VALIDFLAG 	0x08
 #define VXLAN_VNISIZE		3
 #define VXLAN_MCAST_TTL		16

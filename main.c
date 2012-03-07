@@ -113,7 +113,7 @@ main (int argc, char * argv[])
 	hints.ai_socktype = SOCK_DGRAM;
 	hints.ai_protocol = IPPROTO_UDP;
 			
-	if (getaddrinfo (mcast_caddr, NULL, &hints, &res) != 0) {
+	if (getaddrinfo (mcast_caddr, VXLAN_CPORT, &hints, &res) != 0) {
 		usage ();
 		error_quit ("Invalid Multicast Address \"%s\"", mcast_caddr);
 	}
@@ -135,7 +135,7 @@ main (int argc, char * argv[])
 						   vxlan_if_name);
 		set_ipv4_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv4_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
+//		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
 		break;
 
 	case AF_INET6 :
@@ -145,7 +145,7 @@ main (int argc, char * argv[])
 						   vxlan_if_name);
 		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv6_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
+//		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
 
 		break;
 
@@ -158,12 +158,19 @@ main (int argc, char * argv[])
 	
 
 	/* Create Unicast Socket */
-
 	if ((vxlan.unicast_sock = socket (EXTRACT_FAMILY(vxlan.mcast_addr), 
 					  SOCK_DGRAM, 
 					  IPPROTO_UDP)) < 0)
 		err (EXIT_FAILURE, "can not create unicast socket");
-	
+
+	struct sockaddr_storage sa_str;
+	memset (&sa_str, 0, sizeof (sa_str));	
+	EXTRACT_PORT (sa_str) = htons (VXLAN_PORT_BASE);
+
+	if (bind (vxlan.unicast_sock, (struct sockaddr *)&sa_str, sizeof (sa_str)) < 0)
+		err (EXIT_FAILURE, "can not bind udp socket");
+
+
 	/* Create vxlan tap interface instance(s) */
 
 	init_hash (&vxlan.vins_tuple, VXLAN_VNISIZE);
