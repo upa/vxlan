@@ -129,24 +129,23 @@ main (int argc, char * argv[])
 
 	switch (((struct sockaddr *)&vxlan.mcast_addr)->sa_family) {
 	case AF_INET :
+		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
 		set_ipv4_multicast_join_and_iface (vxlan.udp_sock, 
 						   ((struct sockaddr_in *)
 						    &vxlan.mcast_addr)->sin_addr,
 						   vxlan_if_name);
 		set_ipv4_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv4_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
 		break;
 
 	case AF_INET6 :
+		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
 		set_ipv6_multicast_join_and_iface (vxlan.udp_sock,
 						   ((struct sockaddr_in6 *)
 						    &vxlan.mcast_addr)->sin6_addr,
 						   vxlan_if_name);
 		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv6_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
-		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
-
 		break;
 
 	default :
