@@ -155,22 +155,22 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 
 	mhdr.msg_iov = iov;
 	mhdr.msg_iovlen = 2;
+	mhdr.msg_controllen = 0;
 
 	if ((entry = fdb_search_entry (vins->fdb, ether->ether_dhost)) == NULL) {
 		mhdr.msg_name = &vxlan.mcast_addr;
-		mhdr.msg_namelen = sizeof (vxlan.mcast_addr);
+		mhdr.msg_namelen = EXTRACT_SALEN (vxlan.mcast_addr);
 		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
-			error_warn("sendmsg to multicast failed : %s", 
-				   strerror (errno));
+			error_warn ("sendmsg to multicast failed %s",
+				    strerror (errno));
 	} else {
 		EXTRACT_PORT (entry->vtep_addr) = htons (VXLAN_PORT_BASE);
 		mhdr.msg_name = &entry->vtep_addr;
-		mhdr.msg_namelen = sizeof (entry->vtep_addr);
+		mhdr.msg_namelen = EXTRACT_SALEN (entry->vtep_addr);
 		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0)
 			error_warn ("sendmsg to unicast failed : %s",
 				    strerror (errno));
 	}
-	
 
 	return;
 }

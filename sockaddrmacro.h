@@ -18,6 +18,12 @@
 #define EXTRACT_FAMILY(sa) \
         (((struct sockaddr *)(&(sa)))->sa_family)
 
+#define EXTRACT_SALEN(sa) \
+	(EXTRACT_FAMILY(sa) == AF_INET) ? sizeof (struct sockaddr_in) : 	\
+	(EXTRACT_FAMILY(sa) == AF_INET6) ? sizeof (struct sockaddr_in6) : 	\
+	-1
+
+
 #define EXTRACT_PORT(sa) (((struct sockaddr_in *)&(sa))->sin_port)
 
 #define INET_STOP(sa, c) \
