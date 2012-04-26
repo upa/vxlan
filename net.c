@@ -19,16 +19,38 @@
 #include "error.h"
 #include "sockaddrmacro.h"
 
+/* 802.1q Ether Header */
+struct ether_vlan_header {
+	u_int8_t ether_dhost[ETH_ALEN];
+	u_int8_t ether_shost[ETH_ALEN];
+	struct vlan {
+		u_int16_t vlan_tpid;
+		u_int16_t vlan_tci;
+	} ether_vlan;
+	u_int16_t ether_type;
+};
+
 struct in6_addr *
 is_ip6_ns (struct ether_header * ether)
 {
+	u_int16_t ether_type;
 	struct ip6_hdr * ip6_hdr;
 	struct nd_neighbor_solicit * nd_ns;
 
-	if (htons (ether->ether_type) != ETHERTYPE_IPV6)
+
+	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
+		((struct ether_vlan_header *)(ether))->ether_type : 
+		ether->ether_type;
+
+	if (htons (ether_type) != ETHERTYPE_IPV6)
 		return NULL;
 	
-	ip6_hdr = (struct ip6_hdr *) (ether + 1);
+	ip6_hdr = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
+		(struct ip6_hdr *) 
+		((char *)(ether) + sizeof (struct ether_vlan_header)) :
+		(struct ip6_hdr *) 
+		((char *)(ether) + sizeof (struct ether_header));
+
 	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
 		return NULL;
 	
@@ -42,13 +64,24 @@ is_ip6_ns (struct ether_header * ether)
 int
 is_ip6_ra (struct ether_header * ether)
 {
+	u_int16_t ether_type;
 	struct ip6_hdr * ip6_hdr;
 	struct nd_router_advert * nd_ra;
 
-	if (htons (ether->ether_type) != ETHERTYPE_IPV6)
+
+	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
+		((struct ether_vlan_header *)(ether))->ether_type : 
+		ether->ether_type;
+
+	if (htons (ether_type) != ETHERTYPE_IPV6)
 		return -1;
 	
-	ip6_hdr = (struct ip6_hdr *) (ether + 1);  
+	ip6_hdr = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
+		(struct ip6_hdr *) 
+		((char *)(ether) + sizeof (struct ether_vlan_header)) :
+		(struct ip6_hdr *) 
+		((char *)(ether) + sizeof (struct ether_header));
+
 	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
 		return -1;
 	
@@ -62,13 +95,23 @@ is_ip6_ra (struct ether_header * ether)
 int
 is_ip6_rs (struct ether_header * ether)
 {
+	u_int16_t ether_type;
 	struct ip6_hdr * ip6_hdr;
 	struct nd_router_solicit * nd_rs;
-	
-	if (htons (ether->ether_type) != ETHERTYPE_IPV6) 
+
+	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
+		((struct ether_vlan_header *)(ether))->ether_type : 
+		ether->ether_type;
+
+	if (htons (ether_type) != ETHERTYPE_IPV6)
 		return -1;
-	
-	ip6_hdr = (struct ip6_hdr *) (ether + 1);
+
+	ip6_hdr = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
+		(struct ip6_hdr *) 
+		((char *)(ether) + sizeof (struct ether_vlan_header)) :
+		(struct ip6_hdr *) 
+		((char *)(ether) + sizeof (struct ether_header));
+
 	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
 		return -1;
 			
@@ -83,12 +126,23 @@ is_ip6_rs (struct ether_header * ether)
 struct in_addr *
 is_ip4_arp (struct ether_header * ether)
 {
+	u_int8_t ether_type;
 	struct ether_arp * arp;
 
-	if (htons (ether->ether_type) != ETHERTYPE_ARP)
+	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
+		((struct ether_vlan_header *)(ether))->ether_type : 
+		ether->ether_type;
+
+	if (htons (ether_type) != ETHERTYPE_ARP)
 		return NULL;
 	
 	arp = (struct ether_arp *) (ether + 1);
+	arp = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
+		(struct ether_arp *)
+		(char *)(ether) + sizeof (struct ether_vlan_header) :
+		(struct ether_arp *)
+		(char *)(ether) + sizeof (struct ether_header);
+
 	if (arp->arp_op != ARPOP_REQUEST)
 		return NULL;
 
