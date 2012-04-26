@@ -41,7 +41,6 @@ struct vxlan_instance {
 
 struct vxlan {
 	int udp_sock;
-	int unicast_sock;
 	int control_sock;
 
 	unsigned short port;

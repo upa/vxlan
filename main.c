@@ -76,7 +76,6 @@ cleanup (void)
 
 	/* close sockets */
 	close (vxlan.udp_sock);
-	close (vxlan.unicast_sock);
 	close (vxlan.control_sock);
 	
 	return;

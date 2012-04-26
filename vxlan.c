@@ -159,6 +159,7 @@ process_vxlan_instance (void * param)
 	int len;
 	char buf[VXLAN_PACKET_BUF_LEN];
 	struct vxlan_instance * vins;
+	fd_set fds;
 
 	vins = (struct vxlan_instance *) param;
 	
@@ -167,12 +168,25 @@ process_vxlan_instance (void * param)
 	printf ("IFNAME : %s\n", vins->vxlan_tap_name);
 	printf ("SOCKET : %d\n", vins->tap_sock);
 #endif
+	
 
 	/* From Tap */
-	while ((len = read (vins->tap_sock, buf, sizeof (buf))) < 0) {
-		send_etherflame_from_local_to_vxlan (vins, 
-						     (struct ether_header * )buf,
-						     len);
+	while (1) {
+		FD_ZERO (&fds);
+		FD_SET (vins->tap_sock, &fds);
+
+		pselect (vins->tap_sock + 1, &fds, NULL, NULL, NULL, NULL);
+		if (!FD_ISSET (vins->tap_sock, &fds))
+			break;
+		
+
+		if ((len = read (vins->tap_sock, buf, sizeof (buf))) < 0)
+			error_warn ("read from tap socket failed %s", strerror (errno));
+		else {
+			send_etherflame_from_local_to_vxlan (vins, 
+							     (struct ether_header * )buf,
+							     len);
+		}
 	}
 
 	/* not reached */
