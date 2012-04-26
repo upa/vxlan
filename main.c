@@ -1,7 +1,9 @@
-#include <stdio.h>
 #include <err.h>
+#include <errno.h>
+#include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <limits.h>
 #include <string.h>
 #include <net/if.h>
@@ -21,6 +23,7 @@
 #include "fdb.h"
 #include "iftap.h"
 #include "vxlan.h"
+#include "control.h"
 
 
 struct vxlan vxlan;
@@ -34,37 +37,75 @@ void debug_print_ether (struct ether_header * ether);
 void
 usage (void)
 {
-	printf ("Usage\n");
-	printf ("\n");
-	printf ("   vxlan -m [MCASTADDR] -i [INTERFACE] [VNI] [VNI]... ");
-	printf ("\n");
-	printf ("\t -m : Multicast Address(v4/v6)\n");
-	printf ("\t -i : Multicast Interface\n");
-	printf ("\t -e : Print Error Massage to STDOUT\n");
-	printf ("\t -c : Access List File\n");
-	printf ("\t -d : Daemon Mode\n");
-	printf ("\n");
+	printf ("\n"
+		" Usage\n"
+		"\n"
+		"   vxland -m [MCASTADDR] -i [INTERFACE]"
+		"\n"
+		"\t -m : Multicast Address(v4/v6)\n"
+		"\t -i : Multicast Interface\n"
+		"\t -e : Print Error Massage to STDOUT\n"
+		"\t -d : Daemon Mode\n"
+		"\t -h : Print Usage (this message)\n"
+		"\n"
+		"   vxland is forwarding daemon. Please configure using vxlanctl.\n"
+		"\n"
+		);
+
+	return;
+}
+
+void
+cleanup (void)
+{
+	int n, vins_num;
+	struct vxlan_instance ** vins_list;
+	
+	/* stop control thread */
+	pthread_cancel (vxlan.control_tid);
+
+	/* stop all vxlan instance */
+	vins_list = (struct vxlan_instance **)
+		create_list_from_hash (&vxlan.vins_tuple, &vins_num);
+
+	for (n = 0; n < vins_num; n++) {
+		destroy_vxlan_instance (vins_list[n]);
+	}
+	
+	destroy_hash (&vxlan.vins_tuple);
+
+	/* close sockets */
+	close (vxlan.udp_sock);
+	close (vxlan.unicast_sock);
+	close (vxlan.control_sock);
+	
+	return;
+}
+
+void 
+sig_cleanup (int signal)
+{
+	cleanup ();
 }
 
 
 int
 main (int argc, char * argv[])
 {
-	int ch, n;
+	int ch;
 	int d_flag = 0, err_flag = 0;
 
 	extern int opterr;
 	extern char * optarg;
 	struct addrinfo hints, *res;
 
-	char configfile[48] = "";
 	char mcast_caddr[40] = "";
 	char vxlan_if_name[IFNAMSIZ] = "";
-	u_int8_t vnibuf[VXLAN_VNISIZE];
 
 	memset (&vxlan, 0, sizeof (vxlan));
+	init_hash (&vxlan.vins_tuple, VXLAN_VNISIZE);
 
-	while ((ch = getopt (argc, argv, "em:i:c:n:d")) != -1) {
+	while ((ch = getopt (argc, argv, "ehm:di:")) != -1) {
 		switch (ch) {
 		case 'e' :
 			err_flag = 1;
@@ -84,19 +125,14 @@ main (int argc, char * argv[])
 			d_flag = 1;
 			break;
 
-		case 'c' :
-			strncpy (configfile, optarg, sizeof (configfile));
-			break;
-
+		case 'h' :
+			usage ();
+			return 0;
+			
 		default :
 			usage ();
 			return -1;
 		}
-	}
-
-	if ((vxlan.vins_num = argc - optind) < 1) {
-		usage ();
-		error_quit ("Please Set VNI(s)");
 	}
 
 	if (d_flag > 0) {
@@ -114,7 +150,6 @@ main (int argc, char * argv[])
 	hints.ai_protocol = IPPROTO_UDP;
 			
 	if (getaddrinfo (mcast_caddr, VXLAN_CPORT, &hints, &res) != 0) {
-		usage ();
 		error_quit ("Invalid Multicast Address \"%s\"", mcast_caddr);
 	}
 
@@ -156,39 +191,8 @@ main (int argc, char * argv[])
 	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_port = htons (vxlan.port);
 	
 
-#if 0
-	/* Create Unicast Socket */
-	if ((vxlan.unicast_sock = socket (EXTRACT_FAMILY(vxlan.mcast_addr), 
-					  SOCK_DGRAM, 
-					  IPPROTO_UDP)) < 0)
-		err (EXIT_FAILURE, "can not create unicast socket");
-
-	struct sockaddr_storage sa_str;
-	memset (&sa_str, 0, sizeof (sa_str));	
-	EXTRACT_PORT (sa_str) = htons (VXLAN_PORT_BASE);
-
-	if (bind (vxlan.unicast_sock, (struct sockaddr *)&sa_str, sizeof (sa_str)) < 0)
-		err (EXIT_FAILURE, "can not bind udp socket");
-#endif
-
-
-	/* Create vxlan tap interface instance(s) */
-
-	init_hash (&vxlan.vins_tuple, VXLAN_VNISIZE);
-
-
-	vxlan.vins = (struct vxlan_instance **) 
-		malloc (sizeof (struct vxlan_instance) * vxlan.vins_num);
-
-	for (n = 0; n < vxlan.vins_num; n++) {
-		strtovni (argv[optind + n], vnibuf);
-		vxlan.vins[n] = (struct vxlan_instance *) 
-			malloc (sizeof (struct vxlan_instance *));
-		vxlan.vins[n] = create_vxlan_instance (vnibuf, configfile);
-		insert_hash (&vxlan.vins_tuple, vxlan.vins[n], vnibuf);
-		init_vxlan_instance (vxlan.vins[n]);
-	}
-
+	/* Start Control Thread */
+	init_vxlan_control ();
 
         /* Enable syslog */
 	if (err_flag == 0) {
@@ -200,11 +204,17 @@ main (int argc, char * argv[])
 	}
 
 
+	/* set signal handler */
+	if (atexit (cleanup) < 0)
+		err (EXIT_FAILURE, "failed to register exit hook");
+
+	if (signal (SIGINT, sig_cleanup) == SIG_ERR)
+		err (EXIT_FAILURE, "failed to register SIGINT hook");
+
 	process_vxlan ();
 
-	/* not reached */
 
-	return -1;
+	return 0;
 }
 
 
@@ -223,34 +233,37 @@ process_vxlan (void)
 
 	memset (buf, 0, sizeof (buf));
 
+	/* From Internet */
 	while (1) {
+
 		FD_ZERO (&fds);
 		FD_SET (vxlan.udp_sock, &fds);
-		memset (&sa_str, 0, sizeof (sa_str));
 		
-		if (select (vxlan.udp_sock + 1, &fds, NULL, NULL, NULL) < 0)
-			err (EXIT_FAILURE, "select failed");
+		pselect (vxlan.udp_sock + 1, &fds, NULL, NULL, NULL, NULL);
+		
+		if (!FD_ISSET (vxlan.udp_sock, &fds))
+			break;
 
-		/* From Internet */
-		if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0, 
-				     (struct sockaddr *)&sa_str, &s_t)) < 0) {
-			error_warn ("read from udp socket failed");
-			continue;
-		}
-			
+		if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0,	
+				     (struct sockaddr *)&sa_str, &s_t)) < 0) 
+			break;
+
+		memset (&sa_str, 0, sizeof (sa_str));
+
 		vhdr = (struct vxlan_hdr *) buf;
 		if ((vins = search_hash (&vxlan.vins_tuple, vhdr->vxlan_vni)) == NULL) {
 			error_warn ("invalid VNI %02x%02x%02x", 
 				    vhdr->vxlan_vni[0], 
 				    vhdr->vxlan_vni[1], 
 				    vhdr->vxlan_vni[2]);
-			continue;
+			break;
 		}
 			
 		ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));
 		process_fdb_etherflame_from_vxlan (vins, ether, &sa_str);
 		send_etherflame_from_vxlan_to_local (vins, ether, 
 						     len - sizeof (struct vxlan_hdr));
+
 	}
 
 	return;

@@ -7,3 +7,5 @@ autom4te.cache/
 m.sh
 *.log
 missing
+vxland
+vxlanctl

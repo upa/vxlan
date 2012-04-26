@@ -16,9 +16,10 @@
 #define VXLAN_TUNNAME		"vxlan"
 #define VXLAN_PACKET_BUF_LEN	9216
 
-
 #define VXLAN_LOGNAME		"vxlan"
 #define VXLAN_LOGFACILITY	LOG_LOCAL7
+
+#define VXLAN_UNIX_DOMAIN	"/var/run/vxlan"
 
 #define ACL_MASK_RA	0x01
 #define ACL_MASK_RS	0x02
@@ -41,13 +42,15 @@ struct vxlan_instance {
 struct vxlan {
 	int udp_sock;
 	int unicast_sock;
+	int control_sock;
 
 	unsigned short port;
 	struct sockaddr_storage mcast_addr; 	/* vxlan Multicast Address */
 
-	int vins_num;			/* Num of VXLAN Instance */
-	struct hash vins_tuple;		/* VXLAN Instance hash table. key is VNI */
-	struct vxlan_instance ** vins;	/* VXLAN Instance List */
+	int vins_num;				/* Num of VXLAN Instance */
+	struct hash vins_tuple;			/* VXLAN Instance hash table. key is VNI */
+
+	pthread_t control_tid;			/* Control Thread ID */
 };
 
 

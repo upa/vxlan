@@ -3,19 +3,22 @@
 
 CC = gcc -Wall -g -DLOGGING_FDB_CHANGE
 
-MODULES = error.o fdb.o hash.o iftap.o net.o vxlan.o
-PROGNAME = vxlan
+MODULES = error.o fdb.o hash.o iftap.o net.o vxlan.o control.o
+PROGNAME = vxland vxlanctl
 
 .PHONY : all
-all : modules vxlan
+all : modules vxland vxlanctl
 
 .c.o:
 	$(CC) -c $< -o $@
 
 modules : $(MODULES)
 
-vxlan : main.c common.h $(MODULES)
-	$(CC) -lpthread main.c $(MODULES) -o vxlan
+vxland : main.c common.h $(MODULES)
+	$(CC) -lpthread main.c $(MODULES) -o vxland
+
+vxlanctl : vxlanctl.c common.h
+	$(CC) vxlanctl.c -o vxlanctl
 
 clean :
-	rm $(MODULES) vxlan
+	rm $(MODULES) $(PROGNAME)

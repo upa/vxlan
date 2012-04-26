@@ -7,16 +7,11 @@
 
 #include "common.h"
 
-void process_fdb_etherflame_from_vxlan (struct vxlan_instance * vins,
-                                        struct ether_header * ether,
-                                        struct sockaddr_storage * vtep_addr);
-
 void send_etherflame_from_vxlan_to_local (struct vxlan_instance * vins,
                                           struct ether_header * ether, int len);
 
 void send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
                                           struct ether_header * ether, int len);
-
 
 struct in_addr getifaddr (char * dev);
 struct in6_addr getifaddr6 (char * dev);

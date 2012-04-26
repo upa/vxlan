@@ -37,6 +37,7 @@ tap_alloc (char * dev)
 	return fd;
 }
 
+
 int
 tap_up (char * dev)
 {

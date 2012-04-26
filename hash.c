@@ -162,6 +162,56 @@ search_hash (struct hash * hash, void * key)
 
 
 
+void
+destroy_hash (struct hash * hash)
+{
+	int n;
+	struct hashnode	* ptr, * pptr, * prev;
+
+	for (n = 0; n < HASH_TABLE_SIZE; n++) {
+		ptr = &hash->table[n];
+		if (ptr->next != NULL) {
+			for (pptr = ptr->next; pptr != NULL;) {
+				prev = pptr;
+				pptr = pptr->next;
+				free (prev->key);
+				free (prev->data);
+			}
+		}
+	}
+
+	return;
+}
+
+
+void **
+create_list_from_hash (struct hash * hash, int * num)
+{
+	int n, c;
+        void ** datalist;
+	struct hashnode	* ptr, * pptr;
+
+	datalist = (void **) malloc (sizeof (void *) * hash->count);
+	memset (datalist, 0, sizeof (void *) * hash->count);
+
+	for (c = 0, n = 0; n < HASH_TABLE_SIZE; n++) {
+		ptr = &hash->table[n];
+		if (ptr->next != NULL) {
+			for (pptr = ptr->next;
+			     pptr != NULL;
+			     pptr = pptr->next) {
+				datalist[c] = (void *) malloc (sizeof (void *));
+				datalist[c++] = pptr->data;
+			}
+		}
+	}
+
+	*num = hash->count;
+	return datalist;
+}
+
+
+
 #include <stdio.h>
 
 void

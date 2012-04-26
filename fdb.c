@@ -32,6 +32,7 @@ void
 destroy_fdb (struct fdb * fdb)
 {
 	pthread_cancel (fdb->decrease_ttl_t);
+	destroy_hash (&fdb->fdb);
 	return;
 }
 

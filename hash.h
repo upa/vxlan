@@ -24,7 +24,9 @@ void init_hash (struct hash * hash, int keylen);
 int insert_hash (struct hash * hash, void * data, void * key);
 void * delete_hash (struct hash * hash, void * key);
 void * search_hash (struct hash * hash, void * key);
+void destroy_hash (struct hash * hash);
 
+void ** create_list_from_hash (struct hash * hash, int * num);
 
 /* debug */
 void print_all_hash (struct hash * hash);
