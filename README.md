@@ -94,20 +94,20 @@ if you want to use vlan, create vlan interface using vconfig.
 	           RX bytes:0 (0.0 B)  TX bytes:468 (468.0 B)
 
 
-ToDO
+ToDo
 ----
 + Per VLAN Access List
 + Per VLAN Forwarding Database (it is Per VNI FDB now)
 + Support *BSD 
 
 
-Lisence
+License
 -------
-Under BSD Lisence.
+Under BSD LICENSE.
 
 
 Contact
 -------
-_upa@haeena.net_
+upa@haeena.net
 
 
