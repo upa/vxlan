@@ -26,12 +26,16 @@ How to Use
 ### vxlan.conf ###
 
 Multicast Address and Interface are configured in 
-/usr/local/etc/vxlan.conf . vxland can work IPv4 and 
-IPv6.
+/usr/local/etc/vxlan.conf . vxland can work with 
+IPv4 and IPv6.
 
 	# vxlan.conf
 	multicast_address 239.0.0.1
 	multicast_interface eth0
+
+### vxland ###
+
+vxland is daemon for forwarding packet.
 
 + start : _/etc/init.d/vxlan start_
 + stop : _/etc/init.d/vxlan stop_
@@ -42,29 +46,30 @@ Other configurations is installed by vxlanctl.
 ### vxlanctl ###
 
 vxlanctl is command tool for configuring vxlan. you can 
-create/destroy vxlan tunnel interface, and install Access list. All Access 
-List affect as Out Bound Filter per VNI. if you prefer using 
-vlan, create vlan interface using vconfig.
+create/destroy vxlan tunnel interface, and install Access 
+list. All Access List affect as Out Bound Filter per VNI. 
+if you want to use vlan, create vlan interface using vconfig.
 
-
-	% vxlanctl --help
-	   Usage :
-		  vxlanctl [commands]
+	### Usage ####
+	 % vxlanctl --help
+	    Usage :
+	 	  vxlanctl [commands]
+	   
+	    commands:    (VNI is hex)
 	  
-	   commands:    (VNI is hex)
-
-	    create <VNI>                             add vxlan interface
-	    destroy <VNI>                            delete vxlan interface
-	    acl <VNI> mac [deny|permit] <Mac Addr>   Source Mac Address Filter
-	    acl <VNI> arp [deny|permit] <v4Addr>     ARP Target Address Filter
-	    acl <VNI> ns  [deny|permit] <v6Addr>     NS Target Address Filter
-	    acl <VNI> ra  [deny|permit]              RA Filter
-	    acl <VNI> rs  [deny|permit]              RS FIlter
-	 
+	     create <VNI>                             add vxlan interface
+	     destroy <VNI>                            delete vxlan interface
+	     acl <VNI> mac [deny|permit] <Mac Addr>   Source Mac Address Filter
+	     acl <VNI> arp [deny|permit] <v4Addr>     ARP Target Address Filter
+	     acl <VNI> ns  [deny|permit] <v6Addr>     NS Target Address Filter
+	     acl <VNI> ra  [deny|permit]              RA Filter
+	     acl <VNI> rs  [deny|permit]              RS FIlter
+	  
+	  	 
+	### Create vxlan interface  ####
 	 % vxlanctl create 0
 	 created
-	 % vxlanctl create A
-	 created
+	 %
 	 % ifconfig vxlan0
 	 vxlan0    Link encap:Ethernet  HWaddr 06:b3:1a:45:86:9a  
 	           inet6 addr: fe80::4b3:1aff:fe45:869a/64 Scope:Link
@@ -73,7 +78,9 @@ vlan, create vlan interface using vconfig.
 	           TX packets:4 errors:0 dropped:0 overruns:0 carrier:0
 	           collisions:0 txqueuelen:500 
 	           RX bytes:0 (0.0 B)  TX bytes:328 (328.0 B)
-	 %
+	 
+	 
+	### using with 802.1q vlan ####
 	 % vconfig add vxlan0 100	// using vlan tag
 	 Added VLAN with VID == 100 to IF -:vxlan0:-
 	 % ifconfig vxlan0.100 up
