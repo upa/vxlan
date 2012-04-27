@@ -220,11 +220,9 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 				    strerror (errno));
 	} else {
 		EXTRACT_PORT (entry->vtep_addr) = htons (VXLAN_PORT_BASE);
-		PRINT_ADDR("vtep_addr", entry->vtep_addr);
 		mhdr.msg_name = &entry->vtep_addr;
 //		mhdr.msg_namelen = EXTRACT_SALEN (entry->vtep_addr);
 		mhdr.msg_namelen = sizeof (entry->vtep_addr);
-		printf ("send unicast!!\n");
 		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0)
 			error_warn ("sendmsg to unicast failed : %s",
 				    strerror (errno));
