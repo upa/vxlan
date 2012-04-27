@@ -1,0 +1,90 @@
+#!/bin/sh
+#
+# Start/Stop the vxlan daemon.
+#
+### BEGIN INIT INFO
+# Provides:		vxland
+# Required-Start:	$remote_fs $local_fs
+# REquired-Stop:	$remote_fs $local_fs
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	Virtula eXtensible LAN Daemon
+#
+### END INIT INFO
+
+NAME=vxland
+DAEMON=/usr/local/sbin/vxland
+CONFIG=/usr/local/etc/vxlan.conf
+SOCKET=/var/run/vxlan
+PIDFILE=/var/run/vxlan.pid
+
+
+if [ ! -x $DAEMON ]; then
+	echo "$DAEMON does not exist" 
+	exit 0
+fi
+
+if [ ! -e $CONFIG ]; then
+	echo "$CONFIG does not exist"
+	exit 0
+fi
+
+if [ `id -u` != "0" ]; then
+	echo "please run as a root"
+	exit 0
+fi
+
+
+start()
+{
+	if [ -e $PIDFILE ]; then 
+		echo "pid file ($PIDFILE) exists"
+		exit 0
+	fi
+
+	if [ -e $SOCKET ]; then
+		echo "unix domain socket ($SOCKET) exists"
+		exit 0
+	fi
+
+	
+        MCASTADDR=`cat $CONFIG | grep -v ^\# | grep multicast_address | \
+                        sed -e 's/\t/ /g' | sed -e 's/^ \+//' |		\
+			sed -e 's/ \+/ /g' | cut -d ' ' -f 2`
+        MCASTIFACE=`cat $CONFIG | grep -v ^\# | grep multicast_interface | \
+                        sed -e 's/\t/ /g' | sed -e 's/^ \+//' |		\
+			sed -e 's/ \+/ /g' | cut -d ' ' -f 2`
+
+	echo start vxland
+	$DAEMON -m $MCASTADDR -i $MCASTIFACE > /dev/null 2>&1 &
+	echo $! > $PIDFILE
+	exit 0
+}
+
+stop()
+{
+	
+	if [ -e $PIDFILE ]; then 
+		kill `cat $PIDFILE`
+		rm $PIDFILE
+	else 
+		echo "not running?"
+		exit 0
+	fi
+
+	if [ -e $SOCKET ]; then
+		rm $SOCKET
+	fi
+
+	exit 0
+}
+
+
+case $1 in
+	start) start ;;
+	stop) stop ;;
+	*) echo "$0 [start|stop]" ;;
+esac
+
+exit 0
+
