@@ -207,8 +207,10 @@ main (int argc, char * argv[])
 	if (atexit (cleanup) < 0)
 		err (EXIT_FAILURE, "failed to register exit hook");
 
+	/*
 	if (signal (SIGINT, sig_cleanup) == SIG_ERR)
 		err (EXIT_FAILURE, "failed to register SIGINT hook");
+	*/
 
 	process_vxlan ();
 
@@ -243,11 +245,10 @@ process_vxlan (void)
 		if (!FD_ISSET (vxlan.udp_sock, &fds))
 			break;
 
+		memset (&sa_str, 0, sizeof (sa_str));
 		if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0,	
 				     (struct sockaddr *)&sa_str, &s_t)) < 0) 
-			break;
-
-		memset (&sa_str, 0, sizeof (sa_str));
+			continue;
 
 		vhdr = (struct vxlan_hdr *) buf;
 		if ((vins = search_hash (&vxlan.vins_tuple, vhdr->vxlan_vni)) == NULL) {
@@ -255,7 +256,7 @@ process_vxlan (void)
 				    vhdr->vxlan_vni[0], 
 				    vhdr->vxlan_vni[1], 
 				    vhdr->vxlan_vni[2]);
-			break;
+			continue;
 		}
 			
 		ether = (struct ether_header *) (buf + sizeof (struct vxlan_hdr));

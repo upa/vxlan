@@ -179,14 +179,14 @@ process_vxlan_instance (void * param)
 		if (!FD_ISSET (vins->tap_sock, &fds))
 			break;
 		
-
-		if ((len = read (vins->tap_sock, buf, sizeof (buf))) < 0)
-			error_warn ("read from tap socket failed %s", strerror (errno));
-		else {
-			send_etherflame_from_local_to_vxlan (vins, 
-							     (struct ether_header * )buf,
-							     len);
+		if ((len = read (vins->tap_sock, buf, sizeof (buf))) < 0) {
+			error_warn ("read from tap socket failed %s", strerror (errno)); 
+			continue;
 		}
+		
+		send_etherflame_from_local_to_vxlan (vins, 
+						     (struct ether_header * )buf,
+						     len);
 	}
 
 	/* not reached */
