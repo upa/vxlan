@@ -12,7 +12,7 @@ You can create/destroy vxlan tunnel interface using
 vxlanctl. And configure access list about ARP/ND/MAC.
 It can work on Linux Only. 
 
-INSTALL
+Install
 -------
 
 	% git clone git://github.com/upa/hogelan.git
@@ -82,17 +82,17 @@ if you want to use vlan, create vlan interface using vconfig.
 	 
 	 
 	### using with 802.1q vlan ####
-	 % vconfig add vxlan0 100	// using vlan tag
+	 % vconfig add vxlan0 100
 	 Added VLAN with VID == 100 to IF -:vxlan0:-
 	 % ifconfig vxlan0.100 up
 	 % ifconfig vxlan0.100
-	 vxlan0    Link encap:Ethernet  HWaddr 06:b3:1a:45:86:9a  
-	           inet6 addr: fe80::4b3:1aff:fe45:869a/64 Scope:Link
-	           UP BROADCAST RUNNING  MTU:1500  Metric:1
-	           RX packets:0 errors:0 dropped:0 overruns:0 frame:0
-	           TX packets:6 errors:0 dropped:0 overruns:0 carrier:0
-	           collisions:0 txqueuelen:500 
-	           RX bytes:0 (0.0 B)  TX bytes:468 (468.0 B)
+	 vxlan0.100    Link encap:Ethernet  HWaddr 06:b3:1a:45:86:9a  
+	               inet6 addr: fe80::4b3:1aff:fe45:869a/64 Scope:Link
+	               UP BROADCAST RUNNING  MTU:1500  Metric:1
+	               RX packets:0 errors:0 dropped:0 overruns:0 frame:0
+	               TX packets:6 errors:0 dropped:0 overruns:0 carrier:0
+	               collisions:0 txqueuelen:500 
+	               RX bytes:0 (0.0 B)  TX bytes:468 (468.0 B)
 
 
 ToDo
