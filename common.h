@@ -5,8 +5,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-
-#include "hash.h"
+#include <uthash.h>
 
 #define VXLAN_PORT_BASE		60000
 #define VXLAN_CPORT		"60000"
@@ -21,21 +20,19 @@
 
 #define VXLAN_UNIX_DOMAIN	"/var/run/vxlan"
 
-#define ACL_MASK_RA	0x01
-#define ACL_MASK_RS	0x02
 
 struct vxlan_instance {
-	u_int8_t vni[VXLAN_VNISIZE];
+	/* uthash key */
+	struct vnikey {		
+		u_int8_t vni[VXLAN_VNISIZE];
+	} vni;
+
 	char vxlan_tap_name[IFNAMSIZ];
-
 	struct fdb * fdb;
-	struct hash acl_mac;
-	struct hash acl_ip4;
-	struct hash acl_ip6;
-	u_int8_t acl_mask;
-
-	pthread_t tid;
+	pthread_t tid;			/* thread ID of process own VID instance */
 	int tap_sock;
+
+	UT_hash_handle hh;
 };
 
 
@@ -47,8 +44,7 @@ struct vxlan {
 	struct sockaddr_storage mcast_addr; 	/* vxlan Multicast Address */
 
 	int vins_num;				/* Num of VXLAN Instance */
-	struct hash vins_tuple;			/* VXLAN Instance hash table. key is VNI */
-
+	struct vxlan_instance * vins_table; 	/* VXLAN Instance uthash table */
 	pthread_t control_tid;			/* Control Thread ID */
 };
 

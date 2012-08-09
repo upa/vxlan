@@ -30,125 +30,6 @@ struct ether_vlan_header {
 	u_int16_t ether_type;
 };
 
-struct in6_addr *
-is_ip6_ns (struct ether_header * ether)
-{
-	u_int16_t ether_type;
-	struct ip6_hdr * ip6_hdr;
-	struct nd_neighbor_solicit * nd_ns;
-
-
-	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
-		((struct ether_vlan_header *)(ether))->ether_type : 
-		ether->ether_type;
-
-	if (htons (ether_type) != ETHERTYPE_IPV6)
-		return NULL;
-	
-	ip6_hdr = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
-		(struct ip6_hdr *) 
-		((char *)(ether) + sizeof (struct ether_vlan_header)) :
-		(struct ip6_hdr *) 
-		((char *)(ether) + sizeof (struct ether_header));
-
-	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
-		return NULL;
-	
-	nd_ns = (struct nd_neighbor_solicit *) (ip6_hdr + 1);
-	if (nd_ns->nd_ns_type != ND_NEIGHBOR_SOLICIT)
-		return NULL;
-
-	return &nd_ns->nd_ns_target;
-}
-
-int
-is_ip6_ra (struct ether_header * ether)
-{
-	u_int16_t ether_type;
-	struct ip6_hdr * ip6_hdr;
-	struct nd_router_advert * nd_ra;
-
-
-	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
-		((struct ether_vlan_header *)(ether))->ether_type : 
-		ether->ether_type;
-
-	if (htons (ether_type) != ETHERTYPE_IPV6)
-		return -1;
-	
-	ip6_hdr = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
-		(struct ip6_hdr *) 
-		((char *)(ether) + sizeof (struct ether_vlan_header)) :
-		(struct ip6_hdr *) 
-		((char *)(ether) + sizeof (struct ether_header));
-
-	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
-		return -1;
-	
-	nd_ra = (struct nd_router_advert *) (ip6_hdr + 1);
-	if (nd_ra->nd_ra_type != ND_ROUTER_ADVERT)
-		return -1;
-	
-	return 1;
-}
-
-int
-is_ip6_rs (struct ether_header * ether)
-{
-	u_int16_t ether_type;
-	struct ip6_hdr * ip6_hdr;
-	struct nd_router_solicit * nd_rs;
-
-	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
-		((struct ether_vlan_header *)(ether))->ether_type : 
-		ether->ether_type;
-
-	if (htons (ether_type) != ETHERTYPE_IPV6)
-		return -1;
-
-	ip6_hdr = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
-		(struct ip6_hdr *) 
-		((char *)(ether) + sizeof (struct ether_vlan_header)) :
-		(struct ip6_hdr *) 
-		((char *)(ether) + sizeof (struct ether_header));
-
-	if (ip6_hdr->ip6_nxt != IPPROTO_ICMPV6)
-		return -1;
-			
-	nd_rs = (struct nd_router_solicit *) (ip6_hdr + 1);
-	if (nd_rs->nd_rs_type != ND_ROUTER_SOLICIT)
-		return -1;
-	
-	return 1;
-}
-
-
-struct in_addr *
-is_ip4_arp (struct ether_header * ether)
-{
-	u_int8_t ether_type;
-	struct ether_arp * arp;
-
-	ether_type = (htons (ether->ether_type == ETHERTYPE_VLAN)) ?
-		((struct ether_vlan_header *)(ether))->ether_type : 
-		ether->ether_type;
-
-	if (htons (ether_type) != ETHERTYPE_ARP)
-		return NULL;
-	
-	arp = (struct ether_arp *) (ether + 1);
-	arp = (htons (ether->ether_type) == ETHERTYPE_VLAN) ?
-		(struct ether_arp *)
-		(char *)(ether) + sizeof (struct ether_vlan_header) :
-		(struct ether_arp *)
-		(char *)(ether) + sizeof (struct ether_header);
-
-	if (arp->arp_op != ARPOP_REQUEST)
-		return NULL;
-
-	return (struct in_addr *) (arp->arp_tpa);
-}
-
 
 void
 send_etherflame_from_vxlan_to_local (struct vxlan_instance * vins, 
@@ -166,41 +47,15 @@ void
 send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins, 
 				     struct ether_header * ether, int len)
 {
-	struct in_addr * ip4;
-	struct in6_addr * ip6;
 	struct vxlan_hdr vhdr;
 	struct fdb_entry * entry;
 	struct msghdr mhdr;
 	struct iovec iov[2];
 	
-	/* ACL Match */
-	if (search_hash (&vins->acl_mac, ether->ether_shost) != NULL) 
-		return;
-
-	if ((ip4 = is_ip4_arp (ether)) != NULL) {
-		if (search_hash (&vins->acl_ip4, ip4) != NULL)
-			return;
-	}
-
-	if ((ip6 = is_ip6_ns (ether)) != NULL) {
-		if (search_hash (&vins->acl_ip6, ip6) != NULL)
-			return;
-	}
-
-	if ((vins->acl_mask & ACL_MASK_RA) > 0 &&
-	    is_ip6_ra (ether) > 0) {
-		return;
-	}
-
-	if ((vins->acl_mask & ACL_MASK_RS) &&
-	    is_ip6_rs (ether) > 0) {
-		return;
-	}
-
 	/* Forwarding */
 	memset (&vhdr, 0, sizeof (vhdr));
 	vhdr.vxlan_flags = VXLAN_VALIDFLAG;
-	memcpy (vhdr.vxlan_vni, vins->vni, VXLAN_VNISIZE);
+	memcpy (vhdr.vxlan_vni, &(vins->vni), VXLAN_VNISIZE);
 
 	iov[0].iov_base = &vhdr;
 	iov[0].iov_len  = sizeof (vhdr);
@@ -213,7 +68,6 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 
 	if ((entry = fdb_search_entry (vins->fdb, ether->ether_dhost)) == NULL) {
 		mhdr.msg_name = &vxlan.mcast_addr;
-//		mhdr.msg_namelen = EXTRACT_SALEN (vxlan.mcast_addr);
 		mhdr.msg_namelen = sizeof (vxlan.mcast_addr);
 		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0) 
 			error_warn ("sendmsg to multicast failed %s",
@@ -221,7 +75,6 @@ send_etherflame_from_local_to_vxlan (struct vxlan_instance * vins,
 	} else {
 		EXTRACT_PORT (entry->vtep_addr) = htons (VXLAN_PORT_BASE);
 		mhdr.msg_name = &entry->vtep_addr;
-//		mhdr.msg_namelen = EXTRACT_SALEN (entry->vtep_addr);
 		mhdr.msg_namelen = sizeof (entry->vtep_addr);
 		if (sendmsg (vxlan.udp_sock, &mhdr, 0) < 0)
 			error_warn ("sendmsg to unicast failed : %s",

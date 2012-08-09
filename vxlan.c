@@ -5,7 +5,6 @@
 #include <unistd.h>
 #include <limits.h>
 #include <sys/types.h>
-#include <sys/select.h>
 #include <net/if.h>
 #include <arpa/inet.h>
 #include <syslog.h>
@@ -53,10 +52,9 @@ create_vxlan_instance (u_int8_t * vni)
 	/* create socket and fdb */
 	vins = (struct vxlan_instance *) malloc (sizeof (struct vxlan_instance));
 	memset (vins, 0, sizeof (struct vxlan_instance));
-	memcpy (vins->vni, vni, VXLAN_VNISIZE);
+	memcpy (&(vins->vni), vni, VXLAN_VNISIZE);
 
-	snprintf (cbuf, 16, "0x%02x%02x%02x", 
-		  vins->vni[0],vins->vni[1], vins->vni[2]);
+	snprintf (cbuf, 16, "0x%02x%02x%02x", vni[0], vni[1], vni[2]);
 	vni32 = strtol (cbuf, NULL, 0);
 	snprintf (vins->vxlan_tap_name, IFNAMSIZ, "%s%X", 
 		  VXLAN_TUNNAME, vni32);
@@ -64,14 +62,22 @@ create_vxlan_instance (u_int8_t * vni)
 	vins->fdb = init_fdb ();
 	vins->tap_sock = tap_alloc (vins->vxlan_tap_name);
 	
+	return vins;
+}
 
-	/* create out bound MAC/ARP/ND/RA access list */
-	init_hash (&vins->acl_mac, ETH_ALEN);
-	init_hash (&vins->acl_ip4, sizeof (struct in_addr));
-	init_hash (&vins->acl_ip6, sizeof (struct in6_addr));
+struct vxlan_instance *
+search_vxlan_instance (u_int8_t * vni)
+{
+	struct vxlan_instance * vins;
+
+	HASH_FIND (hh, vxlan.vins_table, 
+		   (struct vnikey *)vni,
+		   sizeof (struct vnikey), 
+		   vins);
 
 	return vins;
 }
+
 
 void
 init_vxlan_instance (struct vxlan_instance * vins)
@@ -85,6 +91,17 @@ init_vxlan_instance (struct vxlan_instance * vins)
 	pthread_create (&vins->tid, &attr, process_vxlan_instance, vins);
 
 	return;
+}
+
+int
+add_vxlan_instance (struct vxlan_instance * vins)
+{
+	if (search_vxlan_instance (vins->vni.vni) != NULL)
+		return -1;
+	
+	HASH_ADD (hh, vxlan.vins_table, vni, sizeof (vins->vni), vins);
+
+	return 0;
 }
 
 int
@@ -111,9 +128,10 @@ destroy_vxlan_instance (struct vxlan_instance * vins)
 
 	destroy_fdb (vins->fdb);
 	
-	/* cleaning struct vxlan values */
+	/* cleaning struct vxlan instasnce on hash */
 	vxlan.vins_num--;
-	delete_hash (&vxlan.vins_tuple, vins->vni);
+	HASH_DEL (vxlan.vins_table, vins);
+	free (vins);
 
 	return 0;
 }
@@ -159,7 +177,6 @@ process_vxlan_instance (void * param)
 	int len;
 	char buf[VXLAN_PACKET_BUF_LEN];
 	struct vxlan_instance * vins;
-	fd_set fds;
 
 	vins = (struct vxlan_instance *) param;
 	
@@ -168,17 +185,9 @@ process_vxlan_instance (void * param)
 	printf ("IFNAME : %s\n", vins->vxlan_tap_name);
 	printf ("SOCKET : %d\n", vins->tap_sock);
 #endif
-	
 
 	/* From Tap */
 	while (1) {
-		FD_ZERO (&fds);
-		FD_SET (vins->tap_sock, &fds);
-
-		pselect (vins->tap_sock + 1, &fds, NULL, NULL, NULL, NULL);
-		if (!FD_ISSET (vins->tap_sock, &fds))
-			break;
-		
 		if ((len = read (vins->tap_sock, buf, sizeof (buf))) < 0) {
 			error_warn ("read from tap socket failed %s", strerror (errno)); 
 			continue;

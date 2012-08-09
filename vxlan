@@ -58,13 +58,13 @@ start()
 	echo start vxland
 	$DAEMON -m $MCASTADDR -i $MCASTIFACE > /dev/null 2>&1 &
 	echo $! > $PIDFILE
-	exit 0
 }
 
 stop()
 {
 	
 	if [ -e $PIDFILE ]; then 
+		echo stop vxlan
 		kill `cat $PIDFILE`
 		rm $PIDFILE
 	else 
@@ -76,13 +76,19 @@ stop()
 		rm $SOCKET
 	fi
 
-	exit 0
+}
+
+restart ()
+{
+	stop
+	start
 }
 
 
 case $1 in
 	start) start ;;
 	stop) stop ;;
+	restart) restart ;;
 	*) echo "$0 [start|stop]" ;;
 esac
 

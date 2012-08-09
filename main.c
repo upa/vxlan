@@ -7,14 +7,12 @@
 #include <limits.h>
 #include <string.h>
 #include <net/if.h>
-#include <sys/select.h>
 #include <arpa/inet.h>
 #include <signal.h>
 #include <netdb.h>
 #include <net/if.h>
 #include <netinet/in.h>
 #include <syslog.h>
-
 
 #include "common.h"
 #include "sockaddrmacro.h"
@@ -58,21 +56,15 @@ usage (void)
 void
 cleanup (void)
 {
-	int n, vins_num;
-	struct vxlan_instance ** vins_list;
+	struct vxlan_instance * vins, * tmp;
 	
 	/* stop control thread */
 	pthread_cancel (vxlan.control_tid);
 
 	/* stop all vxlan instance */
-	vins_list = (struct vxlan_instance **)
-		create_list_from_hash (&vxlan.vins_tuple, &vins_num);
-
-	for (n = 0; n < vins_num; n++) {
-		destroy_vxlan_instance (vins_list[n]);
+	HASH_ITER (hh, vxlan.vins_table, vins, tmp) {
+		destroy_vxlan_instance (vins);
 	}
-	
-	destroy_hash (&vxlan.vins_tuple);
 
 	/* close sockets */
 	close (vxlan.udp_sock);
@@ -102,7 +94,6 @@ main (int argc, char * argv[])
 	char vxlan_if_name[IFNAMSIZ] = "";
 
 	memset (&vxlan, 0, sizeof (vxlan));
-	init_hash (&vxlan.vins_tuple, VXLAN_VNISIZE);
 
 	while ((ch = getopt (argc, argv, "ehm:di:")) != -1) {
 		switch (ch) {
@@ -161,7 +152,7 @@ main (int argc, char * argv[])
 	
 	freeaddrinfo (res);
 
-	switch (((struct sockaddr *)&vxlan.mcast_addr)->sa_family) {
+	switch (EXTRACT_FAMILY (vxlan.mcast_addr)) {
 	case AF_INET :
 		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
 		set_ipv4_multicast_join_and_iface (vxlan.udp_sock, 
@@ -224,7 +215,6 @@ process_vxlan (void)
 {
 	int len;
 	char buf[VXLAN_PACKET_BUF_LEN];
-	fd_set fds;
 
 	struct vxlan_hdr 	* vhdr;
 	struct ether_header 	* ether;
@@ -236,22 +226,13 @@ process_vxlan (void)
 
 	/* From Internet */
 	while (1) {
-
-		FD_ZERO (&fds);
-		FD_SET (vxlan.udp_sock, &fds);
-		
-		pselect (vxlan.udp_sock + 1, &fds, NULL, NULL, NULL, NULL);
-		
-		if (!FD_ISSET (vxlan.udp_sock, &fds))
-			break;
-
 		memset (&sa_str, 0, sizeof (sa_str));
 		if ((len = recvfrom (vxlan.udp_sock, buf, sizeof (buf), 0,	
 				     (struct sockaddr *)&sa_str, &s_t)) < 0) 
 			continue;
 
 		vhdr = (struct vxlan_hdr *) buf;
-		if ((vins = search_hash (&vxlan.vins_tuple, vhdr->vxlan_vni)) == NULL) {
+		if ((vins = search_vxlan_instance (vhdr->vxlan_vni)) == NULL) {
 			error_warn ("invalid VNI %02x%02x%02x", 
 				    vhdr->vxlan_vni[0], 
 				    vhdr->vxlan_vni[1], 

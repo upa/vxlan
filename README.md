@@ -1,11 +1,9 @@
-hogelan
-=======
-
-hogelan is simple vxlan implementation using Linux tap interface.
+vxlan
+=====
 
 ID : https://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
 
-hogelan includes "vxland" and "vxlanctl" commands.
+vxlan includes "vxland" and "vxlanctl" commands.
 vxland, is vxlan daemon, forwards packet to VXLAN 
 Overlay Network. vxlanctl is command for controlling vxlan. 
 You can create/destroy vxlan tunnel interface using 
@@ -14,9 +12,11 @@ It can work on Linux Only.
 
 Install
 -------
+VXLAN requires uthash package late 1.9.
+Please see http://uthash.sourceforge.net/ .
 
-	% git clone git://github.com/upa/hogelan.git
-	% cd hogelan
+	% git clone git://github.com/upa/vxlan.git
+	% cd vxlan
 	% make
 	% make install
 
@@ -36,12 +36,12 @@ IPv4 and IPv6.
 
 ### vxland ###
 
-vxland is daemon for forwarding packet.
+vxland is daemon that creates vxlan instances, and inforward packets.
 
 + start : _/etc/init.d/vxlan start_
 + stop : _/etc/init.d/vxlan stop_
 
-Other configurations is installed by vxlanctl.
+Other configurations are installed by vxlanctl.
 
 
 ### vxlanctl ###
@@ -60,12 +60,6 @@ if you want to use vlan, create vlan interface using vconfig.
 	  
 	     create <VNI>                             add vxlan interface
 	     destroy <VNI>                            delete vxlan interface
-	     acl <VNI> mac [deny|permit] <Mac Addr>   Source Mac Address Filter
-	     acl <VNI> arp [deny|permit] <v4Addr>     ARP Target Address Filter
-	     acl <VNI> ns  [deny|permit] <v6Addr>     NS Target Address Filter
-	     acl <VNI> ra  [deny|permit]              RA Filter
-	     acl <VNI> rs  [deny|permit]              RS FIlter
-	  
 	  	 
 	### Create vxlan interface  ####
 	 % vxlanctl create 0

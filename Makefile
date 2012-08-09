@@ -3,7 +3,7 @@
 
 CC = gcc -Wall -g 
 
-MODULES = error.o fdb.o hash.o iftap.o net.o vxlan.o control.o
+MODULES = error.o fdb.o iftap.o net.o vxlan.o control.o
 PROGNAME = vxland vxlanctl
 INITSCRIPT = vxlan
 
@@ -51,9 +51,7 @@ uninstall : $(PROGNAME)
 
 control.c	: control.h
 error.c		: error.h
-fdb.h		: hash.h 
 fdb.c		: fdb.h
-hash.c		: hash.h
 iftap.c		: iftap.h
 net.h		: common.h
 net.c		: net.h fdb.h error.h sockaddrmacro.h
