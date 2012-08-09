@@ -91,7 +91,6 @@ if you want to use vlan, create vlan interface using vconfig.
 
 ToDo
 ----
-+ Per VLAN Access List
 + Per VLAN Forwarding Database (it is Per VNI FDB now)
 + show command of vxlanctl
 + Support *BSD 
