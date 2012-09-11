@@ -17,17 +17,21 @@
 #include "control.h"
 #include "net.h"
 #include "vxlan.h"
-
+#include "sockaddrmacro.h"
 
 void exec_command_invalid (char * str, int sock);
 void exec_command_vni_create (char * str, int sock);
 void exec_command_vni_destroy (char * str, int sock);
+void exec_command_set_mcast_addr (char * str, int sock);
+void exec_command_set_mcast_iface (char * str, int sock);
 
 void (* exec_command_func[]) (char * str, int sock) =
 {
 	exec_command_invalid,
 	exec_command_vni_create,
-	exec_command_vni_destroy
+	exec_command_vni_destroy,
+	exec_command_set_mcast_addr,
+	exec_command_set_mcast_iface
 };
 
 
@@ -103,6 +107,13 @@ strtocmdtype (char * str)
 	if (strncmp (str, "destroy", 7) == 0)
 		return COMMAND_TYPE_VNI_DESTROY;		
 
+	if (strncmp (str, "mcast_addr", 9) == 0)
+		return COMMAND_TYPE_SET_MCAST_ADDR;
+
+	if (strncmp (str, "mcast_iface", 10) == 0)
+		return COMMAND_TYPE_SET_MCAST_IFACE;
+
+
 	return COMMAND_TYPE_INVALID;
 }
 
@@ -177,6 +188,78 @@ exec_command_vni_destroy (char * str, int sock)
 
 	return;	
 }
+
+
+
+void
+exec_command_set_mcast_addr (char * str, int sock)
+{
+	char cmd[CONTROL_CMD_BUF_LEN];
+	char addr[CONTROL_CMD_BUF_LEN];
+	char errbuf[256];
+	struct in_addr m_addr;
+	
+	if (sscanf (str, "%s %s", cmd, addr) < 2) {
+		write (sock, CONTROL_ERRMSG, sizeof (CONTROL_ERRMSG));
+		return;
+	}
+	
+	if (inet_pton (AF_INET, addr, &m_addr) < 1) {
+		sprintf (errbuf, "failed: invalid address \"%s\"", addr);
+		write (sock, errbuf, strlen (errbuf));
+		return;
+	}
+
+	if (drop_ipv4_mcast_addr (vxlan.udp_sock, 
+				  EXTRACT_INADDR (vxlan.mcast_addr)) < 0) {
+		strcpy (errbuf, "failed: can not leave existing group");
+		write (sock, errbuf, strlen (errbuf));
+		return;
+	}
+
+	if (set_ipv4_mcast_addr (vxlan.udp_sock, m_addr)) {
+		sprintf (errbuf, "failed: invalid multicast address \"%s\"",
+			 inet_ntoa (m_addr));
+		write (sock, errbuf, strlen (errbuf));
+		set_ipv4_mcast_addr (vxlan.udp_sock, EXTRACT_INADDR (vxlan.mcast_addr));
+		return;
+	}
+
+	set_ipv4_multicast_loop (vxlan.udp_sock, 0);
+	set_ipv4_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
+
+	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_addr = m_addr;
+
+	return;
+}	
+
+
+
+void
+exec_command_set_mcast_iface (char * str, int sock)
+{
+	char cmd[CONTROL_CMD_BUF_LEN];
+	char ifname[CONTROL_CMD_BUF_LEN];
+	char errbuf[256];
+	
+	if (sscanf (str, "%s %s", cmd, ifname) < 2) {
+		write (sock, CONTROL_ERRMSG, sizeof (CONTROL_ERRMSG));
+		return;
+	}
+
+	if (set_ipv4_mcast_iface (vxlan.udp_sock, ifname) < 0) {
+		sprintf (errbuf, "failed: can not set interface \"%s\"", ifname);
+		write (sock, errbuf, strlen (errbuf));
+		return;
+	}
+	
+	set_ipv4_multicast_loop (vxlan.udp_sock, 0);
+	set_ipv4_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
+
+	strncpy (vxlan.if_name, ifname, IFNAMSIZ);
+
+	return;
+}	
 
 
 

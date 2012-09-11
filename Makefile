@@ -8,8 +8,6 @@ PROGNAME = vxland vxlanctl
 INITSCRIPT = vxlan
 
 INSTALLDST = /usr/local/sbin/
-CONFIGDST = /usr/local/etc/
-CONFIGFILE = vxlan.conf
 
 RCDST = /etc/init.d/
 UPDATERCD = /usr/sbin/update-rc.d
@@ -35,9 +33,6 @@ clean :
 install	: $(PROGNAME)
 	install vxland $(INSTALLDST)
 	install vxlanctl $(INSTALLDST)
-	if [ ! -f $(CONFIGDST)/$(CONFIGFILE) ]; then	\
-		install $(CONFIGFILE) $(CONFIGDST);	\
-	fi
 	install $(INITSCRIPT) $(RCDST)
 	$(UPDATERCD) $(INITSCRIPT) defaults
 	

@@ -90,22 +90,23 @@ getifaddr (char * dev)
 {
 	int fd;
 	struct ifreq ifr;
-	struct sockaddr_in * addr;
 
 	fd = socket (AF_INET, SOCK_DGRAM, 0);
 
 	memset (&ifr, 0, sizeof (ifr));
 	strncpy (ifr.ifr_name, dev, IFNAMSIZ - 1);
 
-	if (ioctl (fd, SIOCGIFADDR, &ifr) < 0)
-		err (EXIT_FAILURE, "can not get interface \"%s\" info", dev);
+	if (ioctl (fd, SIOCGIFADDR, &ifr) < 0) {
+		error_warn ("can not get interface \"%s\" info", dev);
+		/* in error, ifr is set by 0, it is INADDRANY. it can be set */
+		memset (&ifr.ifr_addr, 1, sizeof (ifr.ifr_addr));
+	}
 
 	close (fd);
 
-	addr = (struct sockaddr_in *) &(ifr.ifr_addr);
-
-	return addr->sin_addr;
+	return ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
 }
+
 
 struct in6_addr
 getifaddr6 (char * dev)
@@ -299,6 +300,62 @@ set_ipv6_pktinfo (int socket, int stat)
 		err (EXIT_FAILURE, "can not set IPV6_PKTINFO");
 
 	return;
+}
+
+int
+set_ipv4_mcast_addr (int sock, struct in_addr m_addr)
+{
+	struct ip_mreq mreq;
+	
+	memset (&mreq, 0, sizeof (mreq));
+	mreq.imr_multiaddr = m_addr;
+	
+	if (setsockopt (sock,
+			IPPROTO_IP,
+			IP_ADD_MEMBERSHIP,
+			(char *)&mreq, sizeof (mreq)) < 0) 
+		return -1;
+
+	return 0;
+}
+
+
+int
+drop_ipv4_mcast_addr (int sock, struct in_addr m_addr)
+{
+	struct ip_mreq mreq;
+	
+	memset (&mreq, 0, sizeof (mreq));
+	mreq.imr_multiaddr = m_addr;
+	
+	if (setsockopt (sock,
+			IPPROTO_IP,
+			IP_DROP_MEMBERSHIP,
+			(char *)&mreq, sizeof (mreq)) < 0) {
+		error_warn ("can not leave group %s", inet_ntoa (m_addr));
+		return -1;
+	}
+
+	return 0;
+}
+
+
+int
+set_ipv4_mcast_iface (int sock, char * if_name)
+{
+	struct ip_mreq mreq;
+	
+	memset (&mreq, 0, sizeof (mreq));
+	mreq.imr_interface = getifaddr (if_name);
+	
+	if (setsockopt (sock,
+			IPPROTO_IP,
+			IP_MULTICAST_IF,
+			(char *)&mreq.imr_interface,
+			sizeof (mreq.imr_interface)) < 0)
+		return -1;
+
+	return 0;
 }
 
 

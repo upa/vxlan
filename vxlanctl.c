@@ -23,8 +23,10 @@ usage (void)
 		"\t  vxlanctl [commands]\n"
 		"\n"
 		"   commands:    (VNI is hex)\n"
-		"   create  <VNI>      add vxlan interface\n"
-		"   destroy <VNI>      delete vxlan interface\n"
+		"   create      <VNI>      add vxlan interface\n"
+		"   destroy     <VNI>      delete vxlan interface\n"
+		"   mcast_addr  <ADDRESS>  set multicast address\n"
+		"   mcast_iface <IF NAME>  set multicast interface\n"
 		"\n"
 		);
 

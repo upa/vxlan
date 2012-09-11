@@ -14,6 +14,7 @@
 #define VXLAN_MCAST_TTL		16
 #define VXLAN_TUNNAME		"vxlan"
 #define VXLAN_PACKET_BUF_LEN	9216
+#define VXLAN_DEFAULT_MCAST	"239.0.0.1"
 
 #define VXLAN_LOGNAME		"vxlan"
 #define VXLAN_LOGFACILITY	LOG_LOCAL7
@@ -41,6 +42,7 @@ struct vxlan {
 	int control_sock;
 
 	unsigned short port;
+	char if_name[IFNAMSIZ];			/* vxlan Multicast Interface */
 	struct sockaddr_storage mcast_addr; 	/* vxlan Multicast Address */
 
 	int vins_num;				/* Num of VXLAN Instance */

@@ -11,6 +11,8 @@ void init_vxlan_control (void);
 #define COMMAND_TYPE_INVALID	       	0
 #define COMMAND_TYPE_VNI_CREATE		1
 #define COMMAND_TYPE_VNI_DESTROY	2
+#define COMMAND_TYPE_SET_MCAST_ADDR	3
+#define COMMAND_TYPE_SET_MCAST_IFACE	4
 #define COMMAND_TYPE_SHOW		5
 
 

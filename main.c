@@ -40,8 +40,6 @@ usage (void)
 		"\n"
 		"   vxland -m [MCASTADDR] -i [INTERFACE]"
 		"\n"
-		"\t -m : Multicast Address(v4/v6)\n"
-		"\t -i : Multicast Interface\n"
 		"\t -e : Print Error Massage to STDOUT\n"
 		"\t -d : Daemon Mode\n"
 		"\t -h : Print Usage (this message)\n"
@@ -88,27 +86,14 @@ main (int argc, char * argv[])
 
 	extern int opterr;
 	extern char * optarg;
-	struct addrinfo hints, *res;
-
-	char mcast_caddr[40] = "";
-	char vxlan_if_name[IFNAMSIZ] = "";
+	struct in_addr m_addr;
 
 	memset (&vxlan, 0, sizeof (vxlan));
 
-	while ((ch = getopt (argc, argv, "ehm:di:")) != -1) {
+	while ((ch = getopt (argc, argv, "ehd")) != -1) {
 		switch (ch) {
 		case 'e' :
 			err_flag = 1;
-			break;
-			
-		case 'm' :
-			strncpy (mcast_caddr, optarg, sizeof (mcast_caddr));
-
-			break;
-
-		case 'i' :
-			strcpy (vxlan_if_name, optarg);
-			
 			break;
 
 		case 'd' :
@@ -132,54 +117,28 @@ main (int argc, char * argv[])
 
 	/* Create UDP Mulciast Socket */
 
+	vxlan.udp_sock = socket (AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+
         vxlan.port = VXLAN_PORT_BASE;
-
-	memset (&hints, 0, sizeof (hints));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_DGRAM;
-	hints.ai_protocol = IPPROTO_UDP;
-			
-	if (getaddrinfo (mcast_caddr, VXLAN_CPORT, &hints, &res) != 0) {
-		error_quit ("Invalid Multicast Address \"%s\"", mcast_caddr);
-	}
-
-	if ((vxlan.udp_sock = socket (res->ai_family, 
-				      res->ai_socktype,
-				      res->ai_protocol)) < 0)
-		err (EXIT_FAILURE, "can not create socket");
-
-	memcpy (&vxlan.mcast_addr, res->ai_addr, res->ai_addrlen);
-	
-	freeaddrinfo (res);
+	inet_pton (AF_INET, VXLAN_DEFAULT_MCAST, &m_addr);
+	FILL_SOCKADDR (AF_INET, &vxlan.mcast_addr, m_addr);
+	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_port = htons (vxlan.port);
 
 	switch (EXTRACT_FAMILY (vxlan.mcast_addr)) {
 	case AF_INET :
+		set_ipv4_mcast_addr (vxlan.udp_sock, m_addr);
 		bind_ipv4_inaddrany (vxlan.udp_sock, vxlan.port);
-		set_ipv4_multicast_join_and_iface (vxlan.udp_sock, 
-						   ((struct sockaddr_in *)
-						    &vxlan.mcast_addr)->sin_addr,
-						   vxlan_if_name);
 		set_ipv4_multicast_loop (vxlan.udp_sock, 0);
 		set_ipv4_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
 		break;
 
 	case AF_INET6 :
 		bind_ipv6_inaddrany (vxlan.udp_sock, vxlan.port);
-		set_ipv6_multicast_join_and_iface (vxlan.udp_sock,
-						   ((struct sockaddr_in6 *)
-						    &vxlan.mcast_addr)->sin6_addr,
-						   vxlan_if_name);
-		set_ipv6_multicast_loop (vxlan.udp_sock, 0);
-		set_ipv6_multicast_ttl (vxlan.udp_sock, VXLAN_MCAST_TTL);
 		break;
 
 	default :
 		error_quit ("unkown protocol family");
 	}
-
-
-	((struct sockaddr_in *)&vxlan.mcast_addr)->sin_port = htons (vxlan.port);
-	
 
 	/* Start Control Thread */
 	init_vxlan_control ();

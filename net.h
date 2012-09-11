@@ -35,6 +35,10 @@ void set_ipv6_pktinfo (int socket, int stat);
 	(v1[2] != v2[2]) ? -1 : 1	\
 
 
+/* for vyatta */
+int set_ipv4_mcast_addr (int sock, struct in_addr m_addr);
+int drop_ipv4_mcast_addr (int sock, struct in_addr m_addr);
+int set_ipv4_mcast_iface (int sock, char * if_name);
 	
 
 

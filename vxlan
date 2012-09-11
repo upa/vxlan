@@ -14,7 +14,6 @@
 
 NAME=vxland
 DAEMON=/usr/local/sbin/vxland
-CONFIG=/usr/local/etc/vxlan.conf
 SOCKET=/var/run/vxlan
 PIDFILE=/var/run/vxlan.pid
 
@@ -48,15 +47,8 @@ start()
 	fi
 
 	
-        MCASTADDR=`cat $CONFIG | grep -v ^\# | grep multicast_address | \
-                        sed -e 's/\t/ /g' | sed -e 's/^ \+//' |		\
-			sed -e 's/ \+/ /g' | cut -d ' ' -f 2`
-        MCASTIFACE=`cat $CONFIG | grep -v ^\# | grep multicast_interface | \
-                        sed -e 's/\t/ /g' | sed -e 's/^ \+//' |		\
-			sed -e 's/ \+/ /g' | cut -d ' ' -f 2`
-
 	echo start vxland
-	$DAEMON -m $MCASTADDR -i $MCASTIFACE > /dev/null 2>&1 &
+	$DAEMON > /dev/null 2>&1 &
 	echo $! > $PIDFILE
 }
 
