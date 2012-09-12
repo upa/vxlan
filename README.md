@@ -3,12 +3,12 @@ vxlan
 
 ID : https://tools.ietf.org/html/draft-mahalingam-dutt-dcops-vxlan-00
 
-vxlan includes "vxland" and "vxlanctl" commands.
-vxland, is vxlan daemon, forwards packet to VXLAN 
-Overlay Network. vxlanctl is command for controlling vxlan. 
-You can create/destroy vxlan tunnel interface using 
-vxlanctl. And configure access list about ARP/ND/MAC.
-It can work on Linux Only. 
+vxlan includes "vxland" and "vxlanctl" commands.  vxland, is vxlan
+daemon, forwards packet to VXLAN Overlay Network. vxlanctl is command
+for controlling vxlan.  You can create/destroy vxlan tunnel interface,
+and set multicast Address and multicast communication interface
+through vxlanctl. And configure access list about ARP/ND/MAC.  It can
+work on Linux Only.
 
 Install
 -------
@@ -23,16 +23,6 @@ Please see http://uthash.sourceforge.net/ .
 
 How to Use
 ----------
-
-### vxlan.conf ###
-
-Multicast Address and Interface are configured in 
-/usr/local/etc/vxlan.conf . vxland can work with 
-IPv4 and IPv6.
-
-	# vxlan.conf
-	multicast_address 239.0.0.1
-	multicast_interface eth0
 
 ### vxland ###
 
@@ -54,13 +44,18 @@ if you want to use vlan, create vlan interface using vconfig.
 	### Usage ####
 	 % vxlanctl --help
 	    Usage :
-	 	  vxlanctl [commands]
-	   
-	    commands:    (VNI is hex)
-	  
-	     create <VNI>                             add vxlan interface
-	     destroy <VNI>                            delete vxlan interface
+   	        vxlanctl [commands]
+
+            commands:    (VNI is hex)
+	    create      <VNI>      add vxlan interface
+	    destroy     <VNI>      delete vxlan interface
+	    mcast_addr  <ADDRESS>  set multicast address
+	    mcast_iface <IF NAME>  set multicast interface
 	  	 
+        ### Set VXLAN Configuration ###
+	 % vxlanctl mcast_addr 239.0.0.1
+	 % vxlanctl mcast_iface eth0
+
 	### Create vxlan interface  ####
 	 % vxlanctl create 0
 	 created
@@ -73,7 +68,6 @@ if you want to use vlan, create vlan interface using vconfig.
 	           TX packets:4 errors:0 dropped:0 overruns:0 carrier:0
 	           collisions:0 txqueuelen:500 
 	           RX bytes:0 (0.0 B)  TX bytes:328 (328.0 B)
-	 
 	 
 	### using with 802.1q vlan ####
 	 % vconfig add vxlan0 100
