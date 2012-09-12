@@ -36,10 +36,9 @@ Other configurations are installed by vxlanctl.
 
 ### vxlanctl ###
 
-vxlanctl is command tool for configuring vxlan. you can 
-create/destroy vxlan tunnel interface, and install Access 
-list. All Access List affect as Out Bound Filter per VNI. 
-if you want to use vlan, create vlan interface using vconfig.
+vxlanctl is command tool for configuring vxlan. you can create/destroy
+vxlan tunnel interface, and set multicast address and interface.  if
+you want to use vlan, create vlan interface using vconfig.
 
 	### Usage ####
 	 % vxlanctl --help
