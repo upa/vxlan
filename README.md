@@ -7,8 +7,7 @@ vxlan includes "vxland" and "vxlanctl" commands.  vxland, is vxlan
 daemon, forwards packet to VXLAN Overlay Network. vxlanctl is command
 for controlling vxlan.  You can create/destroy vxlan tunnel interface,
 and set multicast Address and multicast communication interface
-through vxlanctl. And configure access list about ARP/ND/MAC.  It can
-work on Linux Only.
+through vxlanctl. 
 
 Install
 -------
