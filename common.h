@@ -7,8 +7,8 @@
 #include <sys/socket.h>
 #include <uthash.h>
 
-#define VXLAN_PORT_BASE		60000
-#define VXLAN_CPORT		"60000"
+#define VXLAN_PORT_BASE		8472
+#define VXLAN_CPORT		"8472"
 #define VXLAN_VALIDFLAG 	0x08
 #define VXLAN_VNISIZE		3
 #define VXLAN_MCAST_TTL		16
